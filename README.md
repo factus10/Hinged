@@ -22,6 +22,8 @@ Note: The app is signed but not notarized with Apple. This is why macOS shows a 
 
 Hinged helps philatelists organize and track their stamp collections. The app supports multiple collections with different catalog systems, tracks stamp conditions and acquisition details, and provides tools for analyzing collection gaps.
 
+![Hinged Screenshot](images/hinged.png)
+
 ## Requirements
 
 - macOS 14.0 or later
