@@ -4,19 +4,28 @@ import SwiftData
 @main
 struct HingedApp: App {
     var sharedModelContainer: ModelContainer = {
-        let schema = Schema([
-            Collection.self,
-            Album.self,
-            Stamp.self,
-            Country.self
-        ])
+        let schema = Schema(versionedSchema: SchemaV1.self)
+
+        // Store data in ~/Documents/Hinged/
+        let documentsURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
+        let hingedFolderURL = documentsURL.appendingPathComponent("Hinged", isDirectory: true)
+        let storeURL = hingedFolderURL.appendingPathComponent("Hinged.store")
+
+        // Create the Hinged folder if it doesn't exist
+        try? FileManager.default.createDirectory(at: hingedFolderURL, withIntermediateDirectories: true)
+
         let modelConfiguration = ModelConfiguration(
             schema: schema,
-            isStoredInMemoryOnly: false
+            url: storeURL,
+            allowsSave: true
         )
 
         do {
-            return try ModelContainer(for: schema, configurations: [modelConfiguration])
+            return try ModelContainer(
+                for: schema,
+                migrationPlan: HingedMigrationPlan.self,
+                configurations: [modelConfiguration]
+            )
         } catch {
             fatalError("Could not create ModelContainer: \(error)")
         }
@@ -32,8 +41,16 @@ struct HingedApp: App {
         .defaultSize(width: 1200, height: 800)
         #endif
         .commands {
+            // Remove "New Window" from File menu
+            CommandGroup(replacing: .newItem) { }
+
+            // Remove Close/Save section
+            CommandGroup(replacing: .saveItem) { }
+
             AboutCommand()
             HelpCommand()
+            SettingsCommand()
+            FileCommands()
             CollectionCommands()
             AlbumCommands()
         }
@@ -50,6 +67,13 @@ struct HingedApp: App {
             HelpView()
         }
         .defaultSize(width: 800, height: 600)
+        .defaultPosition(.center)
+
+        Window("Settings", id: "settings") {
+            SettingsView()
+        }
+        .modelContainer(sharedModelContainer)
+        .windowResizability(.contentSize)
         .defaultPosition(.center)
         #endif
     }
@@ -82,6 +106,85 @@ struct HelpCommand: Commands {
             .keyboardShortcut("?", modifiers: [.command])
         }
     }
+}
+
+// MARK: - Settings Command
+
+struct SettingsCommand: Commands {
+    @Environment(\.openWindow) private var openWindow
+
+    var body: some Commands {
+        CommandGroup(after: .appSettings) {
+            Button("Settings...") {
+                openWindow(id: "settings")
+            }
+            .keyboardShortcut(",", modifiers: [.command])
+        }
+    }
+}
+
+// MARK: - File Commands (Import/Export)
+
+struct FileCommands: Commands {
+    @FocusedValue(\.fileActions) var fileActions
+
+    var body: some Commands {
+        CommandGroup(after: .saveItem) {
+            Divider()
+
+            Menu("Import") {
+                Button("Import CSV...") {
+                    fileActions?.importCSV()
+                }
+                .disabled(fileActions == nil || !fileActions!.canImportCSV)
+
+                Button("Import Full Backup...") {
+                    fileActions?.importBackup()
+                }
+            }
+
+            Menu("Export") {
+                Button("Export CSV...") {
+                    fileActions?.exportCSV()
+                }
+                .disabled(fileActions == nil || !fileActions!.canExportCSV)
+
+                Button("Export Full Backup...") {
+                    fileActions?.exportBackup()
+                }
+                .keyboardShortcut("e", modifiers: [.command, .shift])
+            }
+
+            Divider()
+
+            Button("Quit Hinged") {
+                NSApplication.shared.terminate(nil)
+            }
+            .keyboardShortcut("q", modifiers: [.command])
+        }
+    }
+}
+
+// MARK: - File Actions Protocol
+
+struct FileActionsKey: FocusedValueKey {
+    typealias Value = FileActions
+}
+
+extension FocusedValues {
+    var fileActions: FileActions? {
+        get { self[FileActionsKey.self] }
+        set { self[FileActionsKey.self] = newValue }
+    }
+}
+
+protocol FileActions {
+    var canImportCSV: Bool { get }
+    var canExportCSV: Bool { get }
+    func importCSV()
+    func exportCSV()
+    func importBackup()
+    func exportBackup()
 }
 
 // MARK: - About View

@@ -73,7 +73,7 @@ struct StampDetailView: View {
                     .onTapGesture {
                         isEditingImage = true
                     }
-            } else if stamp.imageData != nil {
+            } else if stamp.hasImage {
                 // Image is loading
                 ProgressView()
                     .frame(width: 200, height: 200)
@@ -103,12 +103,12 @@ struct StampDetailView: View {
             handleImageImport(result)
         }
         .contextMenu {
-            if stamp.imageData != nil {
+            if stamp.hasImage {
                 Button("Replace Image...") {
                     isEditingImage = true
                 }
                 Button("Remove Image", role: .destructive) {
-                    stamp.imageData = nil
+                    stamp.removeImage()
                     loadedImage = nil
                 }
             }
@@ -117,10 +117,10 @@ struct StampDetailView: View {
 
     private func loadImage() async {
         loadedImage = nil
-        guard let imageData = stamp.imageData else { return }
+        guard stamp.hasImage else { return }
         // Load image on background thread
         let image = await Task.detached(priority: .userInitiated) {
-            NSImage(data: imageData)
+            stamp.loadImage()
         }.value
         await MainActor.run {
             loadedImage = image
@@ -134,7 +134,7 @@ struct StampDetailView: View {
             if url.startAccessingSecurityScopedResource() {
                 defer { url.stopAccessingSecurityScopedResource() }
                 if let data = try? Data(contentsOf: url) {
-                    stamp.imageData = data
+                    stamp.saveImage(data: data)
                     stamp.markUpdated()
                     // Load the new image
                     if let newImage = NSImage(data: data) {
@@ -307,6 +307,7 @@ struct AddStampSheet: View {
 
     let preselectedAlbum: Album?
     let quickAddMode: Bool
+    private let settings = UserSettings.shared
 
     @State private var catalogNumber = ""
     @State private var yearOfIssue: Int?
@@ -323,6 +324,7 @@ struct AddStampSheet: View {
     @State private var acquisitionSource = ""
     @State private var selectedAlbum: Album?
     @State private var selectedCountry: Country?
+    @State private var defaultsApplied = false
 
     @FocusState private var catalogNumberFocused: Bool
 
@@ -365,6 +367,17 @@ struct AddStampSheet: View {
             .onAppear {
                 selectedAlbum = preselectedAlbum
                 catalogNumberFocused = true
+                // Apply defaults from settings (only once)
+                if !defaultsApplied {
+                    collectionStatus = settings.defaultCollectionStatus
+                    if let defaultGum = settings.defaultGumCondition {
+                        gumCondition = defaultGum
+                    }
+                    if let defaultGrade = settings.defaultCenteringGrade {
+                        centeringGrade = defaultGrade
+                    }
+                    defaultsApplied = true
+                }
             }
         }
         .frame(minWidth: 500, minHeight: quickAddMode ? 300 : 600)

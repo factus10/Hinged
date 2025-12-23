@@ -1,5 +1,6 @@
 import Foundation
 import SwiftData
+import AppKit
 
 @Model
 final class Stamp {
@@ -26,9 +27,8 @@ final class Stamp {
     var purchaseDate: Date?
     var acquisitionSource: String
 
-    // Image storage
-    @Attribute(.externalStorage)
-    var imageData: Data?
+    // Image storage - stores filename, actual image in ~/Documents/Hinged/Images/
+    var imageFilename: String?
 
     // Metadata
     var createdAt: Date
@@ -109,7 +109,7 @@ final class Stamp {
         purchasePrice: Decimal? = nil,
         purchaseDate: Date? = nil,
         acquisitionSource: String = "",
-        imageData: Data? = nil,
+        imageFilename: String? = nil,
         album: Album? = nil
     ) {
         self.catalogNumber = catalogNumber
@@ -126,10 +126,54 @@ final class Stamp {
         self.purchasePrice = purchasePrice
         self.purchaseDate = purchaseDate
         self.acquisitionSource = acquisitionSource
-        self.imageData = imageData
+        self.imageFilename = imageFilename
         self.album = album
         self.createdAt = Date()
         self.updatedAt = Date()
+    }
+
+    // MARK: - Image Helpers
+
+    /// Whether this stamp has an associated image
+    var hasImage: Bool {
+        guard let filename = imageFilename else { return false }
+        return ImageStorage.imageExists(filename: filename)
+    }
+
+    /// Loads the stamp's image data from disk
+    func loadImageData() -> Data? {
+        guard let filename = imageFilename else { return nil }
+        return ImageStorage.loadImage(filename: filename)
+    }
+
+    /// Loads the stamp's image as NSImage
+    func loadImage() -> NSImage? {
+        guard let filename = imageFilename else { return nil }
+        return ImageStorage.loadNSImage(filename: filename)
+    }
+
+    /// Saves image data and updates the imageFilename
+    /// - Parameter data: The image data to save
+    func saveImage(data: Data) {
+        // Delete old image if exists
+        if let oldFilename = imageFilename {
+            ImageStorage.deleteImage(filename: oldFilename)
+        }
+
+        // Save new image with appropriate extension
+        let ext = ImageStorage.fileExtension(for: data)
+        let filename = ImageStorage.generateFilename(extension: ext)
+        if ImageStorage.saveImage(data: data, filename: filename) != nil {
+            imageFilename = filename
+        }
+    }
+
+    /// Removes the stamp's image
+    func removeImage() {
+        if let filename = imageFilename {
+            ImageStorage.deleteImage(filename: filename)
+        }
+        imageFilename = nil
     }
 
     func markUpdated() {

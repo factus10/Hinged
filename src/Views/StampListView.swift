@@ -5,7 +5,11 @@ import SwiftData
 
 @Observable
 final class CheckedStampsManager {
-    var checked: Set<PersistentIdentifier> = []
+    private(set) var checked: Set<PersistentIdentifier> = []
+
+    // Cached count to avoid repeated Set.count calls
+    var count: Int { checked.count }
+    var hasAny: Bool { !checked.isEmpty }
 
     func isChecked(_ id: PersistentIdentifier) -> Bool {
         checked.contains(id)
@@ -23,29 +27,293 @@ final class CheckedStampsManager {
         checked.removeAll()
     }
 
-    func checkAll(_ ids: [PersistentIdentifier]) {
+    func checkAll(_ ids: some Sequence<PersistentIdentifier>) {
         checked.formUnion(ids)
     }
 
-    func uncheckAll(_ ids: [PersistentIdentifier]) {
+    func uncheckAll(_ ids: some Sequence<PersistentIdentifier>) {
         checked.subtract(ids)
+    }
+
+    // O(min(n,m)) Set operations instead of O(n) iteration
+    func allChecked(in ids: Set<PersistentIdentifier>) -> Bool {
+        !ids.isEmpty && ids.isSubset(of: checked)
+    }
+
+    func someChecked(in ids: Set<PersistentIdentifier>) -> Bool {
+        !checked.isDisjoint(with: ids)
+    }
+
+    func checkedCount(in ids: Set<PersistentIdentifier>) -> Int {
+        checked.intersection(ids).count
     }
 }
 
-// MARK: - Stamp Checkbox (isolated view for fast toggling)
+// MARK: - Stamp Checkbox (observes manager directly to isolate re-renders)
 
 struct StampCheckbox: View {
     let stampID: PersistentIdentifier
-    @Bindable var manager: CheckedStampsManager
+    let manager: CheckedStampsManager
 
     var body: some View {
+        let isChecked = manager.isChecked(stampID)
         Button {
             manager.toggle(stampID)
         } label: {
-            Image(systemName: manager.isChecked(stampID) ? "checkmark.square.fill" : "square")
-                .foregroundStyle(manager.isChecked(stampID) ? Color.accentColor : .secondary)
+            Image(systemName: isChecked ? "checkmark.square.fill" : "square")
+                .foregroundStyle(isChecked ? Color.accentColor : .secondary)
         }
         .buttonStyle(.plain)
+    }
+}
+
+// MARK: - Stamp Table View (isolated to prevent parent re-renders on selection)
+
+struct StampTableView: View {
+    let stamps: [Stamp]
+    let stampsByID: [PersistentIdentifier: Stamp]
+    let allStamps: [Stamp]
+    let showCountryColumn: Bool
+    let catalogSystem: CatalogSystem
+    let manager: CheckedStampsManager
+    @Binding var selectedStamp: Stamp?
+    @State private var selectedStampID: PersistentIdentifier?
+    @State private var sortOrder = [KeyPathComparator(\Stamp.catalogNumber, comparator: NaturalCatalogComparator())]
+
+    var body: some View {
+        Group {
+            if showCountryColumn {
+                tableWithCountry
+            } else {
+                tableWithoutCountry
+            }
+        }
+        .onChange(of: selectedStampID) { _, newValue in
+            // Direct assignment for fastest update
+            if let id = newValue {
+                selectedStamp = stampsByID[id]
+            } else {
+                selectedStamp = nil
+            }
+        }
+        .contextMenu(forSelectionType: PersistentIdentifier.self) { ids in
+            if let stampID = ids.first,
+               let stamp = allStamps.first(where: { $0.persistentModelID == stampID }) {
+                Button("Edit...") {
+                    selectedStamp = stamp
+                }
+                Divider()
+                Menu("Set Status") {
+                    ForEach(CollectionStatus.allCases) { status in
+                        Button {
+                            stamp.collectionStatus = status
+                        } label: {
+                            if stamp.collectionStatus == status {
+                                Label(status.displayName, systemImage: "checkmark")
+                            } else {
+                                Text(status.displayName)
+                            }
+                        }
+                    }
+                }
+                Divider()
+                Button("Delete", role: .destructive) {
+                    if let context = stamp.modelContext {
+                        context.delete(stamp)
+                    }
+                }
+            }
+        }
+        .overlay {
+            if stamps.isEmpty {
+                ContentUnavailableView {
+                    Label("No Stamps", systemImage: "stamp")
+                } description: {
+                    Text("No stamps match your current filters.")
+                }
+            }
+        }
+    }
+
+    private var tableWithCountry: some View {
+        Table(stamps, selection: $selectedStampID, sortOrder: $sortOrder) {
+            TableColumn("") { stamp in
+                StampCheckbox(stampID: stamp.persistentModelID, manager: manager)
+            }
+            .width(30)
+
+            TableColumn(catalogSystem.catalogNumberLabel, value: \.catalogNumber, comparator: NaturalCatalogComparator()) { stamp in
+                Text(stamp.catalogNumber)
+                    .fontWeight(.medium)
+            }
+            .width(70)
+
+            TableColumn("Denom", value: \.denomination) { stamp in
+                Text(stamp.denomination.isEmpty ? "—" : stamp.denomination)
+            }
+            .width(min: 100)
+
+            TableColumn("Country", value: \.countryNameForSort) { stamp in
+                Text(stamp.collectionCountry?.name ?? "—")
+            }
+            .width(100)
+
+            TableColumn("Year", value: \.yearForSort) { stamp in
+                if let year = stamp.yearOfIssue {
+                    Text(String(year))
+                } else {
+                    Text("—")
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .width(50)
+
+            TableColumn("Condition", value: \.conditionShorthand) { stamp in
+                Text(stamp.conditionShorthand)
+                    .font(.system(.body, design: .monospaced))
+            }
+            .width(80)
+
+            TableColumn("Status", value: \.collectionStatusRaw) { stamp in
+                HStack(spacing: 4) {
+                    Image(systemName: stamp.collectionStatus.systemImage)
+                        .foregroundStyle(statusColor(stamp.collectionStatus))
+                    Text(stamp.collectionStatus.shortDisplayName)
+                }
+            }
+            .width(70)
+        }
+    }
+
+    private var tableWithoutCountry: some View {
+        Table(stamps, selection: $selectedStampID, sortOrder: $sortOrder) {
+            TableColumn("") { stamp in
+                StampCheckbox(stampID: stamp.persistentModelID, manager: manager)
+            }
+            .width(30)
+
+            TableColumn(catalogSystem.catalogNumberLabel, value: \.catalogNumber, comparator: NaturalCatalogComparator()) { stamp in
+                Text(stamp.catalogNumber)
+                    .fontWeight(.medium)
+            }
+            .width(70)
+
+            TableColumn("Denom", value: \.denomination) { stamp in
+                Text(stamp.denomination.isEmpty ? "—" : stamp.denomination)
+            }
+            .width(min: 100)
+
+            TableColumn("Year", value: \.yearForSort) { stamp in
+                if let year = stamp.yearOfIssue {
+                    Text(String(year))
+                } else {
+                    Text("—")
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .width(50)
+
+            TableColumn("Condition", value: \.conditionShorthand) { stamp in
+                Text(stamp.conditionShorthand)
+                    .font(.system(.body, design: .monospaced))
+            }
+            .width(80)
+
+            TableColumn("Status", value: \.collectionStatusRaw) { stamp in
+                HStack(spacing: 4) {
+                    Image(systemName: stamp.collectionStatus.systemImage)
+                        .foregroundStyle(statusColor(stamp.collectionStatus))
+                    Text(stamp.collectionStatus.shortDisplayName)
+                }
+            }
+            .width(70)
+        }
+    }
+
+    private func statusColor(_ status: CollectionStatus) -> Color {
+        switch status {
+        case .owned: return .green
+        case .wanted: return .red
+        case .notCollecting: return .gray
+        }
+    }
+}
+
+// MARK: - Bulk Actions Bar (isolated view to prevent parent re-renders)
+
+struct BulkActionsBarView: View {
+    let stampIDs: Set<PersistentIdentifier>
+    let stampsByID: [PersistentIdentifier: Stamp]
+    let manager: CheckedStampsManager
+    let onSetStatus: (CollectionStatus) -> Void
+    let onDelete: (Int) -> Void
+
+    var body: some View {
+        let isAllChecked = manager.allChecked(in: stampIDs)
+        let isSomeChecked = manager.someChecked(in: stampIDs)
+        let count = manager.checkedCount(in: stampIDs)
+
+        if !stampIDs.isEmpty {
+            VStack(spacing: 0) {
+                HStack(spacing: 12) {
+                    // Select all checkbox
+                    Button {
+                        if isAllChecked {
+                            manager.uncheckAll(stampIDs)
+                        } else {
+                            manager.checkAll(stampIDs)
+                        }
+                    } label: {
+                        Image(systemName: isAllChecked ? "checkmark.square.fill" : (isSomeChecked ? "minus.square.fill" : "square"))
+                            .foregroundStyle(isAllChecked || isSomeChecked ? Color.accentColor : .secondary)
+                    }
+                    .buttonStyle(.plain)
+                    .help(isAllChecked ? "Deselect all" : "Select all")
+
+                    if isSomeChecked {
+                        Text("\(count) selected")
+                            .foregroundStyle(.secondary)
+                            .font(.callout)
+
+                        Divider()
+                            .frame(height: 16)
+
+                        Menu {
+                            ForEach(CollectionStatus.allCases) { status in
+                                Button {
+                                    onSetStatus(status)
+                                } label: {
+                                    Label(status.displayName, systemImage: status.systemImage)
+                                }
+                            }
+                        } label: {
+                            Label("Set Status", systemImage: "arrow.triangle.2.circlepath")
+                        }
+                        .menuStyle(.borderlessButton)
+                        .fixedSize()
+
+                        Button(role: .destructive) {
+                            onDelete(count)
+                        } label: {
+                            Label("Delete", systemImage: "trash")
+                        }
+                        .buttonStyle(.borderless)
+                        .foregroundStyle(.red)
+                    } else {
+                        Text("Select stamps to perform bulk actions")
+                            .foregroundStyle(.tertiary)
+                            .font(.callout)
+                    }
+
+                    Spacer()
+                }
+                .padding(.horizontal)
+                .padding(.vertical, 6)
+
+                Divider()
+            }
+            .background(.bar)
+        }
     }
 }
 
@@ -55,7 +323,6 @@ struct StampListView: View {
     let sidebarSelection: SidebarSelection?
     @Binding var selectedStamp: Stamp?
     @Binding var showingGapAnalysis: Bool
-    @Binding var showingCountryManagement: Bool
 
     @Query private var allStamps: [Stamp]
     @Query private var albums: [Album]
@@ -64,11 +331,9 @@ struct StampListView: View {
 
     @State private var isAddingStamp = false
     @State private var quickAddMode = false
-    @State private var selectedStampID: PersistentIdentifier?
     @State private var isPopulatingRange = false
     @State private var isExporting = false
     @State private var isImporting = false
-    @State private var sortOrder = [KeyPathComparator(\Stamp.catalogNumber, comparator: NaturalCatalogComparator())]
     @State private var checkedManager = CheckedStampsManager()
     @State private var showBulkDeleteConfirmation = false
     @State private var pendingDeleteCount = 0
@@ -77,14 +342,12 @@ struct StampListView: View {
         filterState: StampFilterState,
         sidebarSelection: SidebarSelection?,
         selectedStamp: Binding<Stamp?>,
-        showingGapAnalysis: Binding<Bool>,
-        showingCountryManagement: Binding<Bool>
+        showingGapAnalysis: Binding<Bool>
     ) {
         self.filterState = filterState
         self.sidebarSelection = sidebarSelection
         self._selectedStamp = selectedStamp
         self._showingGapAnalysis = showingGapAnalysis
-        self._showingCountryManagement = showingCountryManagement
     }
 
     private var filteredStamps: [Stamp] {
@@ -155,50 +418,34 @@ struct StampListView: View {
             stamps = stamps.filter { filterState.catalogNumberInRange($0.catalogNumber) }
         }
 
-        return stamps.sorted(using: sortOrder)
-    }
-
-    // MARK: - Bulk Selection Helpers
-
-    private func allChecked(in stamps: [Stamp]) -> Bool {
-        !stamps.isEmpty && stamps.allSatisfy { checkedManager.isChecked($0.persistentModelID) }
-    }
-
-    private func someChecked(in stamps: [Stamp]) -> Bool {
-        stamps.contains { checkedManager.isChecked($0.persistentModelID) }
-    }
-
-    private func checkedCount(in stamps: [Stamp]) -> Int {
-        stamps.filter { checkedManager.isChecked($0.persistentModelID) }.count
-    }
-
-    private func toggleAllChecked(in stamps: [Stamp]) {
-        let ids = stamps.map { $0.persistentModelID }
-        if allChecked(in: stamps) {
-            checkedManager.uncheckAll(ids)
-        } else {
-            checkedManager.checkAll(ids)
+        // Sort by catalog number (Table will handle user-initiated sort changes)
+        return stamps.sorted { lhs, rhs in
+            NaturalCatalogComparator().compare(lhs.catalogNumber, rhs.catalogNumber) == .orderedAscending
         }
     }
 
-    private func bulkDelete(from stamps: [Stamp]) {
-        for stamp in stamps where checkedManager.isChecked(stamp.persistentModelID) {
-            modelContext.delete(stamp)
+    // MARK: - Bulk Action Handlers
+
+    private func bulkDelete(stampsByID: [PersistentIdentifier: Stamp]) {
+        for id in checkedManager.checked {
+            if let stamp = stampsByID[id] {
+                modelContext.delete(stamp)
+            }
         }
         // Reset all selection state
         checkedManager.clear()
-        selectedStampID = nil
         selectedStamp = nil
     }
 
-    private func bulkSetStatus(_ status: CollectionStatus, in stamps: [Stamp]) {
-        for stamp in stamps where checkedManager.isChecked(stamp.persistentModelID) {
-            stamp.collectionStatus = status
+    private func bulkSetStatus(_ status: CollectionStatus, stampsByID: [PersistentIdentifier: Stamp]) {
+        for id in checkedManager.checked {
+            if let stamp = stampsByID[id] {
+                stamp.collectionStatus = status
+            }
         }
         // Reset selection to avoid stale state (especially in Smart Collections where
         // stamps may be filtered out after status change)
         checkedManager.clear()
-        selectedStampID = nil
         selectedStamp = nil
     }
 
@@ -239,11 +486,36 @@ struct StampListView: View {
 
     var body: some View {
         let stamps = filteredStamps  // Compute once per render
+        // Pre-compute lookup structures once per render for O(1) access
+        let stampIDs = Set(stamps.map { $0.persistentModelID })
+        let stampsByID = Dictionary(uniqueKeysWithValues: stamps.map { ($0.persistentModelID, $0) })
 
         VStack(spacing: 0) {
             filterBar
-            bulkActionsBar(stamps: stamps)
-            stampTable(stamps: stamps)
+            // BulkActionsBarView is a separate view that observes checkedManager
+            // This isolates the observation so StampListView doesn't re-render on checkbox changes
+            BulkActionsBarView(
+                stampIDs: stampIDs,
+                stampsByID: stampsByID,
+                manager: checkedManager,
+                onSetStatus: { status in
+                    bulkSetStatus(status, stampsByID: stampsByID)
+                },
+                onDelete: { count in
+                    pendingDeleteCount = count
+                    showBulkDeleteConfirmation = true
+                }
+            )
+            // StampTableView owns selection state to isolate re-renders
+            StampTableView(
+                stamps: stamps,
+                stampsByID: stampsByID,
+                allStamps: allStamps,
+                showCountryColumn: showCountryColumn,
+                catalogSystem: catalogSystem,
+                manager: checkedManager,
+                selectedStamp: $selectedStamp
+            )
         }
         .navigationTitle(navigationTitle)
         .toolbar {
@@ -257,7 +529,6 @@ struct StampListView: View {
         }
         .sheet(isPresented: $isPopulatingRange, onDismiss: {
             // Reset selection after populating to avoid stale state
-            selectedStampID = nil
             selectedStamp = nil
         }) {
             if let album = currentAlbum {
@@ -285,7 +556,7 @@ struct StampListView: View {
         ) {
             Button("Cancel", role: .cancel) { }
             Button("Delete", role: .destructive) {
-                bulkDelete(from: filteredStamps)
+                bulkDelete(stampsByID: Dictionary(uniqueKeysWithValues: filteredStamps.map { ($0.persistentModelID, $0) }))
             }
         } message: {
             Text("This will permanently delete \(pendingDeleteCount) stamps. This cannot be undone.")
@@ -398,7 +669,6 @@ struct StampListView: View {
         }
         print("CSV Import: Successfully imported \(importedCount) stamps")
         // Reset selection to avoid stale state
-        selectedStampID = nil
         selectedStamp = nil
     }
 
@@ -513,283 +783,11 @@ struct StampListView: View {
         .background(.bar)
     }
 
-    // MARK: - Bulk Actions Bar
-
-    @ViewBuilder
-    private func bulkActionsBar(stamps: [Stamp]) -> some View {
-        let isAllChecked = allChecked(in: stamps)
-        let isSomeChecked = someChecked(in: stamps)
-        let count = checkedCount(in: stamps)
-
-        if !stamps.isEmpty {
-            VStack(spacing: 0) {
-                HStack(spacing: 12) {
-                    // Select all checkbox
-                    Button {
-                        toggleAllChecked(in: stamps)
-                    } label: {
-                        Image(systemName: isAllChecked ? "checkmark.square.fill" : (isSomeChecked ? "minus.square.fill" : "square"))
-                            .foregroundStyle(isAllChecked || isSomeChecked ? Color.accentColor : .secondary)
-                    }
-                    .buttonStyle(.plain)
-                    .help(isAllChecked ? "Deselect all" : "Select all")
-
-                    if isSomeChecked {
-                        Text("\(count) selected")
-                            .foregroundStyle(.secondary)
-                            .font(.callout)
-
-                        Divider()
-                            .frame(height: 16)
-
-                        Menu {
-                            ForEach(CollectionStatus.allCases) { status in
-                                Button {
-                                    bulkSetStatus(status, in: stamps)
-                                } label: {
-                                    Label(status.displayName, systemImage: status.systemImage)
-                                }
-                            }
-                        } label: {
-                            Label("Set Status", systemImage: "arrow.triangle.2.circlepath")
-                        }
-                        .menuStyle(.borderlessButton)
-                        .fixedSize()
-
-                        Button(role: .destructive) {
-                            pendingDeleteCount = count
-                            showBulkDeleteConfirmation = true
-                        } label: {
-                            Label("Delete", systemImage: "trash")
-                        }
-                        .buttonStyle(.borderless)
-                        .foregroundStyle(.red)
-                    } else {
-                        Text("Select stamps to perform bulk actions")
-                            .foregroundStyle(.tertiary)
-                            .font(.callout)
-                    }
-
-                    Spacer()
-                }
-                .padding(.horizontal)
-                .padding(.vertical, 6)
-
-                Divider()
-            }
-            .background(.bar)
-        }
-    }
-
-    // MARK: - Stamp Table
-
-    @ViewBuilder
-    private func stampTable(stamps: [Stamp]) -> some View {
-        if showCountryColumn {
-            stampTableWithCountry(stamps: stamps)
-        } else {
-            stampTableWithoutCountry(stamps: stamps)
-        }
-    }
-
-    private func stampTableWithCountry(stamps: [Stamp]) -> some View {
-        Table(stamps, selection: $selectedStampID, sortOrder: $sortOrder) {
-            TableColumn("") { stamp in
-                StampCheckbox(stampID: stamp.persistentModelID, manager: checkedManager)
-            }
-            .width(30)
-
-            TableColumn(catalogSystem.catalogNumberLabel, value: \.catalogNumber, comparator: NaturalCatalogComparator()) { stamp in
-                Text(stamp.catalogNumber)
-                    .fontWeight(.medium)
-            }
-            .width(70)
-
-            TableColumn("Denom", value: \.denomination) { stamp in
-                Text(stamp.denomination.isEmpty ? "—" : stamp.denomination)
-            }
-            .width(min: 100)
-
-            TableColumn("Country", value: \.countryNameForSort) { stamp in
-                Text(stamp.collectionCountry?.name ?? "—")
-            }
-            .width(100)
-
-            TableColumn("Year", value: \.yearForSort) { stamp in
-                if let year = stamp.yearOfIssue {
-                    Text(String(year))
-                } else {
-                    Text("—")
-                        .foregroundStyle(.secondary)
-                }
-            }
-            .width(50)
-
-            TableColumn("Condition", value: \.conditionShorthand) { stamp in
-                Text(stamp.conditionShorthand)
-                    .font(.system(.body, design: .monospaced))
-            }
-            .width(80)
-
-            TableColumn("Status", value: \.collectionStatusRaw) { stamp in
-                HStack(spacing: 4) {
-                    Image(systemName: stamp.collectionStatus.systemImage)
-                        .foregroundStyle(statusColor(stamp.collectionStatus))
-                    Text(stamp.collectionStatus.shortDisplayName)
-                }
-            }
-            .width(70)
-        }
-        .onChange(of: selectedStampID) { _, newValue in
-            // Use withTransaction to update without animation for snappier feel
-            var transaction = Transaction()
-            transaction.disablesAnimations = true
-            withTransaction(transaction) {
-                if let id = newValue {
-                    selectedStamp = stamps.first { $0.persistentModelID == id }
-                        ?? allStamps.first { $0.persistentModelID == id }
-                } else {
-                    selectedStamp = nil
-                }
-            }
-        }
-        .contextMenu(forSelectionType: PersistentIdentifier.self) { stampIDs in
-            stampContextMenu(for: stampIDs)
-        }
-        .overlay {
-            if stamps.isEmpty {
-                emptyStateView
-            }
-        }
-    }
-
-    private func stampTableWithoutCountry(stamps: [Stamp]) -> some View {
-        Table(stamps, selection: $selectedStampID, sortOrder: $sortOrder) {
-            TableColumn("") { stamp in
-                StampCheckbox(stampID: stamp.persistentModelID, manager: checkedManager)
-            }
-            .width(30)
-
-            TableColumn(catalogSystem.catalogNumberLabel, value: \.catalogNumber, comparator: NaturalCatalogComparator()) { stamp in
-                Text(stamp.catalogNumber)
-                    .fontWeight(.medium)
-            }
-            .width(70)
-
-            TableColumn("Denom", value: \.denomination) { stamp in
-                Text(stamp.denomination.isEmpty ? "—" : stamp.denomination)
-            }
-            .width(min: 100)
-
-            TableColumn("Year", value: \.yearForSort) { stamp in
-                if let year = stamp.yearOfIssue {
-                    Text(String(year))
-                } else {
-                    Text("—")
-                        .foregroundStyle(.secondary)
-                }
-            }
-            .width(50)
-
-            TableColumn("Condition", value: \.conditionShorthand) { stamp in
-                Text(stamp.conditionShorthand)
-                    .font(.system(.body, design: .monospaced))
-            }
-            .width(80)
-
-            TableColumn("Status", value: \.collectionStatusRaw) { stamp in
-                HStack(spacing: 4) {
-                    Image(systemName: stamp.collectionStatus.systemImage)
-                        .foregroundStyle(statusColor(stamp.collectionStatus))
-                    Text(stamp.collectionStatus.shortDisplayName)
-                }
-            }
-            .width(70)
-        }
-        .onChange(of: selectedStampID) { _, newValue in
-            // Use withTransaction to update without animation for snappier feel
-            var transaction = Transaction()
-            transaction.disablesAnimations = true
-            withTransaction(transaction) {
-                if let id = newValue {
-                    selectedStamp = stamps.first { $0.persistentModelID == id }
-                        ?? allStamps.first { $0.persistentModelID == id }
-                } else {
-                    selectedStamp = nil
-                }
-            }
-        }
-        .contextMenu(forSelectionType: PersistentIdentifier.self) { stampIDs in
-            stampContextMenu(for: stampIDs)
-        }
-        .overlay {
-            if stamps.isEmpty {
-                emptyStateView
-            }
-        }
-    }
-
-    @ViewBuilder
-    private func stampContextMenu(for stampIDs: Set<PersistentIdentifier>) -> some View {
-        if let stampID = stampIDs.first,
-           let stamp = allStamps.first(where: { $0.persistentModelID == stampID }) {
-            Button("Edit...") {
-                selectedStamp = stamp
-            }
-            Divider()
-            Menu("Set Status") {
-                ForEach(CollectionStatus.allCases) { status in
-                    Button {
-                        stamp.collectionStatus = status
-                    } label: {
-                        if stamp.collectionStatus == status {
-                            Label(status.displayName, systemImage: "checkmark")
-                        } else {
-                            Text(status.displayName)
-                        }
-                    }
-                }
-            }
-            Divider()
-            Button("Delete", role: .destructive) {
-                modelContext.delete(stamp)
-            }
-        }
-    }
-
-    private var emptyStateView: some View {
-        ContentUnavailableView {
-            Label("No Stamps", systemImage: "stamp")
-        } description: {
-            if filterState.hasActiveFilters {
-                Text("No stamps match your current filters.")
-            } else if sidebarSelection == nil {
-                Text("Select a collection or album from the sidebar.")
-            } else {
-                Text("Add stamps to get started.")
-            }
-        } actions: {
-            if currentAlbum != nil {
-                Button("Add Stamp") {
-                    isAddingStamp = true
-                }
-                .buttonStyle(.borderedProminent)
-            }
-        }
-    }
-
     // MARK: - Toolbar
 
     @ToolbarContentBuilder
     private var toolbarContent: some ToolbarContent {
         ToolbarItemGroup(placement: .navigation) {
-            Button {
-                showingCountryManagement = true
-            } label: {
-                Label("Countries", systemImage: "globe")
-            }
-            .help("Manage countries and catalog prefixes")
-
             Button {
                 showingGapAnalysis = true
             } label: {
@@ -863,14 +861,6 @@ struct StampListView: View {
             return albums.first { $0.persistentModelID == albumID }
         default:
             return nil
-        }
-    }
-
-    private func statusColor(_ status: CollectionStatus) -> Color {
-        switch status {
-        case .owned: return .green
-        case .wanted: return .red
-        case .notCollecting: return .gray
         }
     }
 }
@@ -1204,8 +1194,7 @@ extension ComparisonResult {
         filterState: StampFilterState(),
         sidebarSelection: nil,
         selectedStamp: .constant(nil),
-        showingGapAnalysis: .constant(false),
-        showingCountryManagement: .constant(false)
+        showingGapAnalysis: .constant(false)
     )
     .modelContainer(for: Stamp.self, inMemory: true)
 }

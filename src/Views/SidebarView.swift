@@ -12,7 +12,9 @@ struct SidebarView: View {
     @State private var collectionToEdit: Collection?
     @State private var albumToRename: Album?
     @State private var albumToDelete: Album?
-    @State private var showDeleteConfirmation = false
+    @State private var showDeleteAlbumConfirmation = false
+    @State private var collectionToDelete: Collection?
+    @State private var showDeleteCollectionConfirmation = false
     @State private var expandedCollections: Set<PersistentIdentifier> = []
 
     private var selectedAlbum: Album? {
@@ -60,7 +62,7 @@ struct SidebarView: View {
             },
             delete: {
                 if let collection = selectedCollection {
-                    deleteCollection(collection)
+                    handleDeleteCollection(collection)
                 }
             }
         ))
@@ -105,7 +107,7 @@ struct SidebarView: View {
         }
         .alert(
             "Delete Album?",
-            isPresented: $showDeleteConfirmation,
+            isPresented: $showDeleteAlbumConfirmation,
             presenting: albumToDelete
         ) { album in
             Button("Cancel", role: .cancel) {
@@ -118,14 +120,38 @@ struct SidebarView: View {
         } message: { album in
             Text("This album contains \(album.stampCount) stamps. Deleting it will also delete all stamps in the album. This cannot be undone.")
         }
+        .alert(
+            "Delete Collection?",
+            isPresented: $showDeleteCollectionConfirmation,
+            presenting: collectionToDelete
+        ) { collection in
+            Button("Cancel", role: .cancel) {
+                collectionToDelete = nil
+            }
+            Button("Delete", role: .destructive) {
+                modelContext.delete(collection)
+                collectionToDelete = nil
+            }
+        } message: { collection in
+            Text("This collection contains \(collection.stampCount) stamps across \(collection.albums?.count ?? 0) album(s). Deleting it will also delete all albums and stamps in the collection. This cannot be undone.")
+        }
     }
 
     private func handleDeleteAlbum(_ album: Album) {
         if album.stampCount > 0 {
             albumToDelete = album
-            showDeleteConfirmation = true
+            showDeleteAlbumConfirmation = true
         } else {
             modelContext.delete(album)
+        }
+    }
+
+    private func handleDeleteCollection(_ collection: Collection) {
+        if collection.stampCount > 0 {
+            collectionToDelete = collection
+            showDeleteCollectionConfirmation = true
+        } else {
+            modelContext.delete(collection)
         }
     }
 
@@ -202,7 +228,7 @@ struct SidebarView: View {
                 }
                 Divider()
                 Button("Delete Collection", role: .destructive) {
-                    deleteCollection(collection)
+                    handleDeleteCollection(collection)
                 }
             }
         }
@@ -235,12 +261,8 @@ struct SidebarView: View {
 
     private func deleteCollections(at offsets: IndexSet) {
         for index in offsets {
-            modelContext.delete(collections[index])
+            handleDeleteCollection(collections[index])
         }
-    }
-
-    private func deleteCollection(_ collection: Collection) {
-        modelContext.delete(collection)
     }
 
     private func deleteAlbums(at offsets: IndexSet, from collection: Collection) {
@@ -266,8 +288,6 @@ struct AddCollectionSheet: View {
     @State private var description = ""
     @State private var catalogSystem: CatalogSystem = .scott
     @State private var selectedCountry: Country?
-    @State private var isAddingCountry = false
-    @State private var newCountryName = ""
 
     var body: some View {
         NavigationStack {
@@ -294,25 +314,9 @@ struct AddCollectionSheet: View {
                             Text(country.name).tag(country as Country?)
                         }
                     }
-
-                    if isAddingCountry {
-                        HStack {
-                            TextField("New country name", text: $newCountryName)
-                                .textFieldStyle(.roundedBorder)
-                            Button("Add") {
-                                addNewCountry()
-                            }
-                            .disabled(newCountryName.isEmpty)
-                            Button("Cancel") {
-                                isAddingCountry = false
-                                newCountryName = ""
-                            }
-                        }
-                    } else {
-                        Button("Add New Country...") {
-                            isAddingCountry = true
-                        }
-                    }
+                    Text("Manage countries in Settings (⌘,)")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 }
 
                 if selectedCountry == nil {
@@ -339,14 +343,6 @@ struct AddCollectionSheet: View {
             }
         }
         .frame(minWidth: 450, minHeight: 350)
-    }
-
-    private func addNewCountry() {
-        let country = Country(name: newCountryName)
-        modelContext.insert(country)
-        selectedCountry = country
-        newCountryName = ""
-        isAddingCountry = false
     }
 
     private func addCollection() {
@@ -419,14 +415,10 @@ struct AddAlbumSheet: View {
 // MARK: - Edit Collection Sheet
 
 struct EditCollectionSheet: View {
-    @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
     @Query(sort: \Country.name) private var countries: [Country]
 
     @Bindable var collection: Collection
-
-    @State private var isAddingCountry = false
-    @State private var newCountryName = ""
 
     var body: some View {
         NavigationStack {
@@ -453,25 +445,9 @@ struct EditCollectionSheet: View {
                             Text(country.name).tag(country as Country?)
                         }
                     }
-
-                    if isAddingCountry {
-                        HStack {
-                            TextField("New country name", text: $newCountryName)
-                                .textFieldStyle(.roundedBorder)
-                            Button("Add") {
-                                addNewCountry()
-                            }
-                            .disabled(newCountryName.isEmpty)
-                            Button("Cancel") {
-                                isAddingCountry = false
-                                newCountryName = ""
-                            }
-                        }
-                    } else {
-                        Button("Add New Country...") {
-                            isAddingCountry = true
-                        }
-                    }
+                    Text("Manage countries in Settings (⌘,)")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 }
 
                 if collection.isWorldwide {
@@ -496,14 +472,6 @@ struct EditCollectionSheet: View {
             }
         }
         .frame(minWidth: 450, minHeight: 400)
-    }
-
-    private func addNewCountry() {
-        let country = Country(name: newCountryName)
-        modelContext.insert(country)
-        collection.country = country
-        newCountryName = ""
-        isAddingCountry = false
     }
 }
 

@@ -24,6 +24,11 @@
 		A1000015000000000000000F /* FocusedValues.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000016000000000000001F /* FocusedValues.swift */; };
 		A1000016000000000000001F /* FlowLayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000017000000000000002F /* FlowLayout.swift */; };
 		A1000017000000000000003F /* HelpView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000018000000000000003F /* HelpView.swift */; };
+		A1000018000000000000004F /* SchemaVersioning.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000019000000000000004F /* SchemaVersioning.swift */; };
+		A1000019000000000000005F /* BackupRestore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A200001A000000000000005F /* BackupRestore.swift */; };
+		A100001A000000000000006F /* Settings.swift in Sources */ = {isa = PBXBuildFile; fileRef = A200001C000000000000007F /* Settings.swift */; };
+		A100001B000000000000007F /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A200001D000000000000008F /* SettingsView.swift */; };
+		A100001C000000000000009F /* ImageStorage.swift in Sources */ = {isa = PBXBuildFile; fileRef = A200001E000000000000009F /* ImageStorage.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -46,6 +51,12 @@
 		A2000016000000000000001F /* FocusedValues.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FocusedValues.swift; sourceTree = "<group>"; };
 		A2000017000000000000002F /* FlowLayout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlowLayout.swift; sourceTree = "<group>"; };
 		A2000018000000000000003F /* HelpView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelpView.swift; sourceTree = "<group>"; };
+		A2000019000000000000004F /* SchemaVersioning.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SchemaVersioning.swift; sourceTree = "<group>"; };
+		A200001A000000000000005F /* BackupRestore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupRestore.swift; sourceTree = "<group>"; };
+		A200001B000000000000006F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		A200001C000000000000007F /* Settings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Settings.swift; sourceTree = "<group>"; };
+		A200001D000000000000008F /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		A200001E000000000000009F /* ImageStorage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageStorage.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -75,6 +86,7 @@
 				A50000050000000000000005 /* Views */,
 				A20000030000000000000003 /* Assets.xcassets */,
 				A2000013000000000000000D /* StampCollection.entitlements */,
+				A200001B000000000000006F /* Info.plist */,
 			);
 			path = src;
 			sourceTree = "<group>";
@@ -97,6 +109,10 @@
 				A20000080000000000000008 /* Stamp.swift */,
 				A20000090000000000000009 /* NavigationSelection.swift */,
 				A2000016000000000000001F /* FocusedValues.swift */,
+				A2000019000000000000004F /* SchemaVersioning.swift */,
+				A200001A000000000000005F /* BackupRestore.swift */,
+				A200001C000000000000007F /* Settings.swift */,
+				A200001E000000000000009F /* ImageStorage.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -111,6 +127,7 @@
 				A2000014000000000000000E /* GapAnalysisView.swift */,
 				A2000015000000000000000F /* CountryManagementView.swift */,
 				A2000018000000000000003F /* HelpView.swift */,
+				A200001D000000000000008F /* SettingsView.swift */,
 				A50000060000000000000006 /* Components */,
 			);
 			path = Views;
@@ -209,6 +226,11 @@
 				A1000015000000000000000F /* FocusedValues.swift in Sources */,
 				A1000016000000000000001F /* FlowLayout.swift in Sources */,
 				A1000017000000000000003F /* HelpView.swift in Sources */,
+				A1000018000000000000004F /* SchemaVersioning.swift in Sources */,
+				A1000019000000000000005F /* BackupRestore.swift in Sources */,
+				A100001A000000000000006F /* Settings.swift in Sources */,
+				A100001B000000000000007F /* SettingsView.swift in Sources */,
+				A100001C000000000000009F /* ImageStorage.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -345,13 +367,14 @@
 				DEVELOPMENT_ASSET_PATHS = "";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = src/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Hinged;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2025 David Anderson. All rights reserved.";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 1.1;
+				MARKETING_VERSION = 1.2;
 				PRODUCT_BUNDLE_IDENTIFIER = com.factus10.Hinged;
 				PRODUCT_NAME = Hinged;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -371,13 +394,14 @@
 				DEVELOPMENT_ASSET_PATHS = "";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = src/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Hinged;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2025 David Anderson. All rights reserved.";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 1.1;
+				MARKETING_VERSION = 1.2;
 				PRODUCT_BUNDLE_IDENTIFIER = com.factus10.Hinged;
 				PRODUCT_NAME = Hinged;
 				SWIFT_EMIT_LOC_STRINGS = YES;

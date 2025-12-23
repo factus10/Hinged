@@ -39,7 +39,8 @@ enum HelpTopic: String, CaseIterable, Identifiable {
     case bulkActions
     case importExport
     case gapAnalysis
-    case countryManagement
+    case settings
+    case dataStorage
     case keyboardShortcuts
 
     var id: String { rawValue }
@@ -55,7 +56,8 @@ enum HelpTopic: String, CaseIterable, Identifiable {
         case .bulkActions: return "Bulk Actions"
         case .importExport: return "Import & Export"
         case .gapAnalysis: return "Gap Analysis"
-        case .countryManagement: return "Country Management"
+        case .settings: return "Settings"
+        case .dataStorage: return "Data Storage"
         case .keyboardShortcuts: return "Keyboard Shortcuts"
         }
     }
@@ -71,7 +73,8 @@ enum HelpTopic: String, CaseIterable, Identifiable {
         case .bulkActions: return "checkmark.circle"
         case .importExport: return "arrow.up.arrow.down"
         case .gapAnalysis: return "chart.bar.xaxis"
-        case .countryManagement: return "globe"
+        case .settings: return "gearshape"
+        case .dataStorage: return "folder"
         case .keyboardShortcuts: return "keyboard"
         }
     }
@@ -97,8 +100,10 @@ enum HelpTopic: String, CaseIterable, Identifiable {
             ImportExportHelp()
         case .gapAnalysis:
             GapAnalysisHelp()
-        case .countryManagement:
-            CountryManagementHelp()
+        case .settings:
+            SettingsHelp()
+        case .dataStorage:
+            DataStorageHelp()
         case .keyboardShortcuts:
             KeyboardShortcutsHelp()
         }
@@ -253,7 +258,7 @@ struct GettingStartedHelp: View {
                 "Right panel: Detailed stamp information and editing"
             ])
 
-            HelpNote(text: "Tip: Use the toolbar buttons at the top to access Gap Analysis and Country Management features.")
+            HelpNote(text: "Tip: Use Settings (⌘,) to configure defaults, manage countries, and create custom catalogs.")
         }
     }
 }
@@ -766,54 +771,146 @@ struct GapAnalysisHelp: View {
     }
 }
 
-// MARK: - Country Management Help
+// MARK: - Settings Help
 
-struct CountryManagementHelp: View {
+struct SettingsHelp: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Text("Country Management")
+            Text("Settings")
                 .font(.title)
                 .fontWeight(.bold)
                 .padding(.bottom, 8)
 
-            HelpParagraph(text: "Manage countries and their catalog prefixes for proper organization of your stamps.")
+            HelpParagraph(text: "Configure your preferences, manage custom catalogs, and maintain your country list. Access Settings via the menu bar (Hinged → Settings) or press ⌘,")
 
-            HelpSectionHeader(title: "Accessing Country Management")
+            HelpSectionHeader(title: "Defaults Tab")
 
-            HelpParagraph(text: "Click the 'Countries' button (globe icon) in the main toolbar.")
+            HelpParagraph(text: "Set default values that are applied when creating new collections and stamps:")
 
-            HelpSectionHeader(title: "Default Countries")
+            VStack(alignment: .leading, spacing: 8) {
+                Text("New Collections").fontWeight(.semibold)
+                HelpBulletList(items: [
+                    "Default Catalog System: Choose from built-in catalogs (Scott, Michel, etc.) or your custom catalogs"
+                ])
 
-            HelpParagraph(text: "Hinged comes with 10 pre-configured countries, each with appropriate catalog prefixes:")
+                Text("New Stamps").fontWeight(.semibold)
+                HelpBulletList(items: [
+                    "Default Collection Status: Owned, Wanted, or Not Collecting",
+                    "Default Gum Condition: Optional - can be left blank",
+                    "Default Centering Grade: Optional - can be left blank"
+                ])
+
+                Text("Display").fontWeight(.semibold)
+                HelpBulletList(items: [
+                    "Currency Symbol: The symbol shown when displaying purchase prices (e.g., $, €, £)"
+                ])
+            }
+
+            HelpSectionHeader(title: "Catalogs Tab")
+
+            HelpParagraph(text: "View built-in catalog systems and create custom catalogs for specialty collecting:")
+
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Built-in Catalogs").fontWeight(.semibold)
+                HelpBulletList(items: [
+                    "Scott, Michel, Stanley Gibbons, Yvert et Tellier, Sakura, Facit, and Other"
+                ])
+
+                Text("Custom Catalogs").fontWeight(.semibold)
+                HelpBulletList(items: [
+                    "Create catalogs for specialized collecting areas",
+                    "Each catalog has a name, prefix, and number label",
+                    "Custom catalogs can be set as the default for new collections"
+                ])
+            }
+
+            HelpNote(text: "Custom catalogs are useful for specialized collections like revenues, cinderellas, or local posts that aren't covered by standard catalogs.")
+
+            HelpSectionHeader(title: "Countries Tab")
+
+            HelpParagraph(text: "Manage the list of countries available when creating collections and assigning stamps:")
 
             HelpBulletList(items: [
-                "United States, United Kingdom, Germany, France",
-                "Japan, Canada, Australia, China, Sweden, Italy"
+                "Hinged comes pre-populated with countries worldwide",
+                "Add new countries by clicking the + button",
+                "Edit country names and catalog prefixes",
+                "Delete countries you don't need"
             ])
 
-            HelpSectionHeader(title: "Adding Countries")
+            HelpParagraph(text: "Countries can have catalog prefixes that identify how stamps are numbered in different catalog systems. For example:")
 
             HelpBulletList(items: [
-                "Click the + button in the country list",
-                "Enter the country name",
-                "Optionally set up catalog prefixes for each catalog system"
+                "Scott uses 'US' for United States",
+                "Michel uses 'D' for Germany (Deutschland)",
+                "Stanley Gibbons uses 'GB' for Great Britain"
             ])
 
-            HelpSectionHeader(title: "Catalog Prefixes")
+            HelpNote(text: "Countries associated with collections cannot be deleted until those collections are removed or reassigned.")
+        }
+    }
+}
 
-            HelpParagraph(text: "Catalog prefixes identify how stamps from each country are numbered in different catalogs. For example:")
+// MARK: - Data Storage Help
+
+struct DataStorageHelp: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text("Data Storage")
+                .font(.title)
+                .fontWeight(.bold)
+                .padding(.bottom, 8)
+
+            HelpParagraph(text: "Hinged stores your collection data in a user-accessible location, making it easy to find, back up, and migrate.")
+
+            HelpSectionHeader(title: "Storage Location")
+
+            HelpParagraph(text: "All Hinged data is stored in your Documents folder:")
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text("~/Documents/Hinged/")
+                    .font(.system(.body, design: .monospaced))
+                    .padding(8)
+                    .background(Color.secondary.opacity(0.1))
+                    .cornerRadius(4)
+            }
+            .padding(.bottom, 8)
+
+            HelpSectionHeader(title: "Folder Structure")
 
             HelpBulletList(items: [
-                "Scott might use 'US' for United States",
-                "Michel might use 'D' for Germany (Deutschland)",
-                "Stanley Gibbons might use 'GB' for Great Britain"
+                "Hinged.store - The main database containing all your collections, albums, stamps, and settings",
+                "Images/ - A subfolder containing all stamp images as individual files"
             ])
 
-            HelpParagraph(text: "These prefixes help with importing data from different catalog sources and generating proper catalog numbers.")
+            HelpSectionHeader(title: "Backing Up Your Data")
 
-            HelpSectionHeader(title: "Deleting Countries")
+            HelpParagraph(text: "To back up your collection, you have two options:")
 
-            HelpParagraph(text: "You can delete countries that aren't associated with any collections or stamps. If a country is in use, you'll need to reassign or delete those stamps first.")
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Option 1: Full Backup Export").fontWeight(.semibold)
+                HelpBulletList(items: [
+                    "Use File → Export → Export Full Backup",
+                    "Creates a single .hingedbackup file containing all data and images",
+                    "Can be restored on any Mac using File → Import → Import Full Backup"
+                ])
+
+                Text("Option 2: Copy the Folder").fontWeight(.semibold)
+                HelpBulletList(items: [
+                    "Quit Hinged first to ensure all data is saved",
+                    "Copy the entire ~/Documents/Hinged/ folder",
+                    "Includes database and all images"
+                ])
+            }
+
+            HelpSectionHeader(title: "Migrating to Another Mac")
+
+            HelpBulletList(items: [
+                "Export a Full Backup from your old Mac",
+                "Install Hinged on your new Mac",
+                "Import the backup file using File → Import → Import Full Backup"
+            ])
+
+            HelpNote(text: "Stamp images are stored as individual files in the Images folder, making them easy to access outside of Hinged if needed.")
         }
     }
 }
@@ -847,7 +944,7 @@ struct KeyboardShortcutsHelp: View {
 
             VStack(alignment: .leading, spacing: 4) {
                 HelpKeyboardShortcut(keys: "Cmd + F", description: "Focus search field")
-                HelpKeyboardShortcut(keys: "Cmd + ,", description: "Open preferences")
+                HelpKeyboardShortcut(keys: "Cmd + ,", description: "Open Settings")
                 HelpKeyboardShortcut(keys: "Cmd + ?", description: "Open help")
                 HelpKeyboardShortcut(keys: "Cmd + Q", description: "Quit application")
             }

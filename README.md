@@ -31,7 +31,7 @@ Hinged helps philatelists organize and track their stamp collections. The app su
 
 ### Collection Organization
 
-- **Collections**: Top-level organizational units that define the catalog system (Scott, Michel, Stanley Gibbons, Yvert, Sakura, Facit) and country scope
+- **Collections**: Top-level organizational units that define the catalog system (Scott, Michel, Stanley Gibbons, Yvert, Sakura, Facit, or custom catalogs) and country scope
 - **Albums**: Subdivisions within collections for organizing stamps by theme, year range, or any preferred grouping
 - **Smart Collections**: Automatic filters for viewing stamps across all collections:
   - All Owned
@@ -166,13 +166,26 @@ The Status column accepts:
 
 Click on any stamp in the list to view and edit its details in the right panel. Changes are saved automatically.
 
-### Managing Countries
+### Settings
 
-Click the globe icon in the toolbar to:
+Access Settings via the menu bar (Hinged → Settings) or press **Cmd+,** to configure:
 
-- Add new countries
+#### Defaults Tab
+- **Default Catalog System**: Choose the default catalog for new collections (built-in or custom)
+- **Default Collection Status**: Set the default status for new stamps (Owned, Wanted, or Not Collecting)
+- **Default Gum Condition**: Optionally pre-fill gum condition for new stamps
+- **Default Centering Grade**: Optionally pre-fill centering grade for new stamps
+- **Currency Symbol**: Set the symbol used when displaying purchase prices
+
+#### Catalogs Tab
+- View built-in catalog systems (Scott, Michel, Stanley Gibbons, etc.)
+- Create custom catalogs for specialty collecting (revenues, cinderellas, local posts, etc.)
+- Custom catalogs can be set as the default for new collections
+
+#### Countries Tab
+- Add, edit, and delete countries
 - Set catalog prefixes for each country (e.g., "US" for United States in Scott catalog)
-- Edit existing country information
+- Hinged comes pre-populated with countries worldwide
 
 ### Gap Analysis
 
@@ -192,11 +205,24 @@ Click the chart icon in the toolbar to analyze your collection:
 - **Cmd+Shift+E**: Edit selected collection
 - **Cmd+Shift+R**: Rename selected album
 - **Cmd+Delete**: Delete selected album
+- **Cmd+,**: Open Settings
 - **Cmd+?**: Open help
+- **Cmd+Q**: Quit application
 
 ## Data Storage
 
-Hinged uses SwiftData for persistent storage. Your data is stored locally on your Mac in the app's container. Images are stored using external storage to optimize database performance.
+Hinged stores all data in a user-accessible location:
+
+```
+~/Documents/Hinged/
+├── Hinged.store      (main database)
+└── Images/           (stamp images)
+```
+
+This makes it easy to:
+- **Back up**: Copy the entire folder, or use File → Export → Export Full Backup
+- **Migrate**: Export a backup and import it on another Mac
+- **Access images**: Stamp images are stored as individual files in the Images subfolder
 
 ## Building from Source
 
