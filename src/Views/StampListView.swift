@@ -1,0 +1,973 @@
+import SwiftUI
+import SwiftData
+
+struct StampListView: View {
+    @Environment(\.modelContext) private var modelContext
+    @Bindable var filterState: StampFilterState
+    let sidebarSelection: SidebarSelection?
+    @Binding var selectedStamp: Stamp?
+
+    @Query private var allStamps: [Stamp]
+    @Query private var albums: [Album]
+    @Query private var collections: [Collection]
+    @Query private var countries: [Country]
+
+    @State private var isAddingStamp = false
+    @State private var quickAddMode = false
+    @State private var selectedStampID: PersistentIdentifier?
+    @State private var isPopulatingRange = false
+    @State private var isExporting = false
+    @State private var isImporting = false
+    @State private var sortOrder = [KeyPathComparator(\Stamp.catalogNumber, comparator: NaturalCatalogComparator())]
+
+    init(
+        filterState: StampFilterState,
+        sidebarSelection: SidebarSelection?,
+        selectedStamp: Binding<Stamp?>
+    ) {
+        self.filterState = filterState
+        self.sidebarSelection = sidebarSelection
+        self._selectedStamp = selectedStamp
+    }
+
+    private var filteredStamps: [Stamp] {
+        var stamps = allStamps
+
+        // Filter by sidebar selection
+        switch sidebarSelection {
+        case .smartCollection(let type):
+            switch type {
+            case .allOwned:
+                stamps = stamps.filter { $0.collectionStatus == .owned }
+            case .wantList:
+                stamps = stamps.filter { $0.collectionStatus == .wanted }
+            case .notCollecting:
+                stamps = stamps.filter { $0.collectionStatus == .notCollecting }
+            case .recentAdditions:
+                let cutoff = Calendar.current.date(byAdding: .day, value: -30, to: Date()) ?? Date()
+                stamps = stamps.filter { $0.createdAt >= cutoff }
+            }
+        case .album(let albumID):
+            stamps = stamps.filter { $0.album?.persistentModelID == albumID }
+        case .collection(let collectionID):
+            stamps = stamps.filter { $0.album?.collection?.persistentModelID == collectionID }
+        case .none:
+            break
+        }
+
+        // Apply search filter
+        if !filterState.searchText.isEmpty {
+            let search = filterState.searchText.lowercased()
+            stamps = stamps.filter { stamp in
+                stamp.catalogNumber.lowercased().contains(search) ||
+                stamp.collectionCountry?.name.lowercased().contains(search) == true ||
+                (stamp.yearOfIssue.map { String($0).contains(search) } ?? false)
+            }
+        }
+
+        // Apply gum condition filter
+        if let gumFilter = filterState.gumCondition {
+            stamps = stamps.filter { $0.gumCondition == gumFilter }
+        }
+
+        // Apply centering grade filter
+        if let gradeFilter = filterState.centeringGrade {
+            stamps = stamps.filter { $0.centeringGrade == gradeFilter }
+        }
+
+        // Apply country filter (country is determined by collection)
+        if let countryID = filterState.countryID {
+            stamps = stamps.filter { $0.collectionCountry?.persistentModelID == countryID }
+        }
+
+        // Apply status filter
+        if let statusFilter = filterState.collectionStatus {
+            stamps = stamps.filter { $0.collectionStatus == statusFilter }
+        }
+
+        // Apply year range filter
+        if let startYear = filterState.yearStart {
+            stamps = stamps.filter { ($0.yearOfIssue ?? 0) >= startYear }
+        }
+        if let endYear = filterState.yearEnd {
+            stamps = stamps.filter { ($0.yearOfIssue ?? Int.max) <= endYear }
+        }
+
+        // Apply catalog number range filter
+        if !filterState.catalogStart.isEmpty || !filterState.catalogEnd.isEmpty {
+            stamps = stamps.filter { filterState.catalogNumberInRange($0.catalogNumber) }
+        }
+
+        return stamps.sorted(using: sortOrder)
+    }
+
+    private var catalogSystem: CatalogSystem {
+        switch sidebarSelection {
+        case .album(let albumID):
+            return albums.first { $0.persistentModelID == albumID }?.collection?.catalogSystem ?? .scott
+        case .collection(let collectionID):
+            if let album = albums.first(where: { $0.collection?.persistentModelID == collectionID }) {
+                return album.collection?.catalogSystem ?? .scott
+            }
+            return .scott
+        default:
+            return .scott
+        }
+    }
+
+    /// Determines if we should show the Country column and filter
+    /// True for: worldwide collections, or when multiple country-specific collections exist
+    /// False for: single country-specific collection
+    private var showCountryColumn: Bool {
+        switch sidebarSelection {
+        case .smartCollection, .none:
+            // If there's only one collection and it's not worldwide, no need to show country
+            if collections.count == 1, let collection = collections.first {
+                return collection.isWorldwide
+            }
+            // Multiple collections or no collections - show country column
+            return collections.count > 1
+        case .album(let albumID):
+            guard let album = albums.first(where: { $0.persistentModelID == albumID }) else { return true }
+            return album.collection?.isWorldwide ?? true
+        case .collection(let collectionID):
+            guard let album = albums.first(where: { $0.collection?.persistentModelID == collectionID }) else { return true }
+            return album.collection?.isWorldwide ?? true
+        }
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            filterBar
+            stampTable
+        }
+        .navigationTitle(navigationTitle)
+        .toolbar {
+            toolbarContent
+        }
+        .sheet(isPresented: $isAddingStamp) {
+            AddStampSheet(
+                preselectedAlbum: currentAlbum,
+                quickAddMode: quickAddMode
+            )
+        }
+        .sheet(isPresented: $isPopulatingRange) {
+            if let album = currentAlbum {
+                PopulateRangeSheet(album: album)
+            }
+        }
+        .fileExporter(
+            isPresented: $isExporting,
+            document: StampCSVDocument(stamps: filteredStamps),
+            contentType: .commaSeparatedText,
+            defaultFilename: exportFilename
+        ) { result in
+            // Handle export result if needed
+        }
+        .fileImporter(
+            isPresented: $isImporting,
+            allowedContentTypes: [.commaSeparatedText],
+            allowsMultipleSelection: false
+        ) { result in
+            handleCSVImport(result)
+        }
+    }
+
+    private var exportFilename: String {
+        let base = navigationTitle.replacingOccurrences(of: " ", with: "_")
+        return "\(base)_stamps"
+    }
+
+    private func handleCSVImport(_ result: Result<[URL], Error>) {
+        guard let album = currentAlbum else {
+            print("CSV Import: No album selected")
+            return
+        }
+        switch result {
+        case .success(let urls):
+            guard let url = urls.first else {
+                print("CSV Import: No URL provided")
+                return
+            }
+            // Try with security-scoped access first, fall back to direct access
+            let hasAccess = url.startAccessingSecurityScopedResource()
+            defer {
+                if hasAccess {
+                    url.stopAccessingSecurityScopedResource()
+                }
+            }
+            importCSV(from: url, into: album)
+        case .failure(let error):
+            print("CSV Import error: \(error)")
+        }
+    }
+
+    private func importCSV(from url: URL, into album: Album) {
+        guard let content = try? String(contentsOf: url, encoding: .utf8) else {
+            print("CSV Import: Failed to read file at \(url)")
+            return
+        }
+        let lines = content.components(separatedBy: .newlines)
+        guard lines.count > 1 else {
+            print("CSV Import: File has no data rows")
+            return
+        }
+
+        // Parse header to find column indices
+        let header = parseCSVLine(lines[0])
+        let catalogIdx = header.firstIndex(of: "Catalog Number") ?? header.firstIndex(of: "catalogNumber")
+        let yearIdx = header.firstIndex(of: "Year") ?? header.firstIndex(of: "yearOfIssue")
+        let denomIdx = header.firstIndex(of: "Denomination") ?? header.firstIndex(of: "denomination")
+        let colorIdx = header.firstIndex(of: "Color") ?? header.firstIndex(of: "color")
+        let statusIdx = header.firstIndex(of: "Status") ?? header.firstIndex(of: "collectionStatus")
+        let gumIdx = header.firstIndex(of: "Gum Condition") ?? header.firstIndex(of: "gumCondition")
+        let gradeIdx = header.firstIndex(of: "Centering Grade") ?? header.firstIndex(of: "centeringGrade")
+        let notesIdx = header.firstIndex(of: "Notes") ?? header.firstIndex(of: "notes")
+
+        guard catalogIdx != nil else {
+            print("CSV Import: No 'Catalog Number' column found. Headers: \(header)")
+            return
+        }
+
+        var importedCount = 0
+        for i in 1..<lines.count {
+            let line = lines[i].trimmingCharacters(in: .whitespaces)
+            guard !line.isEmpty else { continue }
+            let fields = parseCSVLine(line)
+
+            let catalogNumber = catalogIdx.flatMap { $0 < fields.count ? fields[$0] : nil } ?? ""
+            guard !catalogNumber.isEmpty else { continue }
+
+            // Parse status - handle TRUE/FALSE as well as raw enum values
+            let statusValue = statusIdx.flatMap { $0 < fields.count ? fields[$0] : nil } ?? ""
+            let status: CollectionStatus
+            switch statusValue.uppercased() {
+            case "TRUE", "YES", "1", "OWNED":
+                status = .owned
+            case "FALSE", "NO", "0", "WANTED":
+                status = .wanted
+            case "NOTCOLLECTING", "SKIP":
+                status = .notCollecting
+            default:
+                status = CollectionStatus(rawValue: statusValue) ?? .wanted
+            }
+
+            let stamp = Stamp(
+                catalogNumber: catalogNumber,
+                yearOfIssue: yearIdx.flatMap { $0 < fields.count ? Int(fields[$0]) : nil },
+                denomination: denomIdx.flatMap { $0 < fields.count ? fields[$0] : nil } ?? "",
+                color: colorIdx.flatMap { $0 < fields.count ? fields[$0] : nil } ?? "",
+                gumCondition: gumIdx.flatMap { $0 < fields.count ? GumCondition(rawValue: fields[$0]) : nil } ?? .unspecified,
+                centeringGrade: gradeIdx.flatMap { $0 < fields.count ? CenteringGrade(rawValue: fields[$0]) : nil } ?? .unspecified,
+                collectionStatus: status,
+                notes: notesIdx.flatMap { $0 < fields.count ? fields[$0] : nil } ?? "",
+                album: album
+            )
+            modelContext.insert(stamp)
+
+            // Explicitly update the relationship to trigger UI update
+            if album.stamps == nil {
+                album.stamps = [stamp]
+            } else {
+                album.stamps?.append(stamp)
+            }
+            importedCount += 1
+        }
+        print("CSV Import: Successfully imported \(importedCount) stamps")
+    }
+
+    private func parseCSVLine(_ line: String) -> [String] {
+        var fields: [String] = []
+        var current = ""
+        var inQuotes = false
+
+        for char in line {
+            if char == "\"" {
+                inQuotes.toggle()
+            } else if char == "," && !inQuotes {
+                fields.append(current.trimmingCharacters(in: .whitespaces))
+                current = ""
+            } else {
+                current.append(char)
+            }
+        }
+        fields.append(current.trimmingCharacters(in: .whitespaces))
+        return fields
+    }
+
+    // MARK: - Filter Bar
+
+    private var filterBar: some View {
+        VStack(spacing: 0) {
+            HStack(alignment: .top) {
+                Image(systemName: "line.3.horizontal.decrease.circle")
+                    .foregroundStyle(.secondary)
+                    .padding(.top, 5)
+
+                FlowLayout(spacing: 8) {
+                    if showCountryColumn {
+                        Picker("Country", selection: $filterState.countryID) {
+                            Text("Any Country").tag(nil as PersistentIdentifier?)
+                            Divider()
+                            ForEach(countries.sorted(by: { $0.name < $1.name })) { country in
+                                Text(country.name).tag(country.persistentModelID as PersistentIdentifier?)
+                            }
+                        }
+                        .fixedSize()
+                    }
+
+                    Picker("Gum", selection: $filterState.gumCondition) {
+                        Text("Any Gum").tag(nil as GumCondition?)
+                        Divider()
+                        ForEach(GumCondition.allCases) { condition in
+                            Text(condition.displayName).tag(condition as GumCondition?)
+                        }
+                    }
+                    .fixedSize()
+
+                    Picker("Grade", selection: $filterState.centeringGrade) {
+                        Text("Any Grade").tag(nil as CenteringGrade?)
+                        Divider()
+                        ForEach(CenteringGrade.allCases) { grade in
+                            Text(grade.displayName).tag(grade as CenteringGrade?)
+                        }
+                    }
+                    .fixedSize()
+
+                    Picker("Status", selection: $filterState.collectionStatus) {
+                        Text("Any Status").tag(nil as CollectionStatus?)
+                        Divider()
+                        ForEach(CollectionStatus.allCases) { status in
+                            Text(status.displayName).tag(status as CollectionStatus?)
+                        }
+                    }
+                    .fixedSize()
+
+                    HStack(spacing: 4) {
+                        Text("Year:")
+                            .foregroundStyle(.secondary)
+                        TextField("From", value: $filterState.yearStart, format: .number)
+                            .frame(width: 55)
+                            .textFieldStyle(.roundedBorder)
+                        Text("–")
+                            .foregroundStyle(.secondary)
+                        TextField("To", value: $filterState.yearEnd, format: .number)
+                            .frame(width: 55)
+                            .textFieldStyle(.roundedBorder)
+                    }
+
+                    HStack(spacing: 4) {
+                        Text("Cat#:")
+                            .foregroundStyle(.secondary)
+                        TextField("From", text: $filterState.catalogStart)
+                            .frame(width: 55)
+                            .textFieldStyle(.roundedBorder)
+                        Text("–")
+                            .foregroundStyle(.secondary)
+                        TextField("To", text: $filterState.catalogEnd)
+                            .frame(width: 55)
+                            .textFieldStyle(.roundedBorder)
+                    }
+                }
+
+                Spacer(minLength: 8)
+
+                Button("Clear") {
+                    filterState.clearFilters()
+                }
+                .buttonStyle(.borderless)
+                .disabled(!filterState.hasActiveFilters)
+                .padding(.top, 3)
+            }
+            .padding(.horizontal)
+            .padding(.vertical, 8)
+
+            Divider()
+        }
+        .background(.bar)
+    }
+
+    // MARK: - Stamp Table
+
+    @ViewBuilder
+    private var stampTable: some View {
+        if showCountryColumn {
+            stampTableWithCountry
+        } else {
+            stampTableWithoutCountry
+        }
+    }
+
+    private var stampTableWithCountry: some View {
+        Table(filteredStamps, selection: $selectedStampID, sortOrder: $sortOrder) {
+            TableColumn(catalogSystem.catalogNumberLabel, value: \.catalogNumber, comparator: NaturalCatalogComparator()) { stamp in
+                Text(stamp.catalogNumber)
+                    .fontWeight(.medium)
+            }
+            .width(70)
+
+            TableColumn("Denom", value: \.denomination) { stamp in
+                Text(stamp.denomination.isEmpty ? "—" : stamp.denomination)
+            }
+            .width(min: 100)
+
+            TableColumn("Country", value: \.countryNameForSort) { stamp in
+                Text(stamp.collectionCountry?.name ?? "—")
+            }
+            .width(100)
+
+            TableColumn("Year", value: \.yearForSort) { stamp in
+                if let year = stamp.yearOfIssue {
+                    Text(String(year))
+                } else {
+                    Text("—")
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .width(50)
+
+            TableColumn("Condition", value: \.conditionShorthand) { stamp in
+                Text(stamp.conditionShorthand)
+                    .font(.system(.body, design: .monospaced))
+            }
+            .width(80)
+
+            TableColumn("Status", value: \.collectionStatusRaw) { stamp in
+                HStack(spacing: 4) {
+                    Image(systemName: stamp.collectionStatus.systemImage)
+                        .foregroundStyle(statusColor(stamp.collectionStatus))
+                    Text(stamp.collectionStatus.shortDisplayName)
+                }
+            }
+            .width(70)
+        }
+        .onChange(of: selectedStampID) { _, newValue in
+            selectedStamp = newValue.flatMap { id in
+                allStamps.first { $0.persistentModelID == id }
+            }
+        }
+        .contextMenu(forSelectionType: PersistentIdentifier.self) { stampIDs in
+            stampContextMenu(for: stampIDs)
+        }
+        .overlay {
+            if filteredStamps.isEmpty {
+                emptyStateView
+            }
+        }
+    }
+
+    private var stampTableWithoutCountry: some View {
+        Table(filteredStamps, selection: $selectedStampID, sortOrder: $sortOrder) {
+            TableColumn(catalogSystem.catalogNumberLabel, value: \.catalogNumber, comparator: NaturalCatalogComparator()) { stamp in
+                Text(stamp.catalogNumber)
+                    .fontWeight(.medium)
+            }
+            .width(70)
+
+            TableColumn("Denom", value: \.denomination) { stamp in
+                Text(stamp.denomination.isEmpty ? "—" : stamp.denomination)
+            }
+            .width(min: 100)
+
+            TableColumn("Year", value: \.yearForSort) { stamp in
+                if let year = stamp.yearOfIssue {
+                    Text(String(year))
+                } else {
+                    Text("—")
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .width(50)
+
+            TableColumn("Condition", value: \.conditionShorthand) { stamp in
+                Text(stamp.conditionShorthand)
+                    .font(.system(.body, design: .monospaced))
+            }
+            .width(80)
+
+            TableColumn("Status", value: \.collectionStatusRaw) { stamp in
+                HStack(spacing: 4) {
+                    Image(systemName: stamp.collectionStatus.systemImage)
+                        .foregroundStyle(statusColor(stamp.collectionStatus))
+                    Text(stamp.collectionStatus.shortDisplayName)
+                }
+            }
+            .width(70)
+        }
+        .onChange(of: selectedStampID) { _, newValue in
+            selectedStamp = newValue.flatMap { id in
+                allStamps.first { $0.persistentModelID == id }
+            }
+        }
+        .contextMenu(forSelectionType: PersistentIdentifier.self) { stampIDs in
+            stampContextMenu(for: stampIDs)
+        }
+        .overlay {
+            if filteredStamps.isEmpty {
+                emptyStateView
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func stampContextMenu(for stampIDs: Set<PersistentIdentifier>) -> some View {
+        if let stampID = stampIDs.first,
+           let stamp = allStamps.first(where: { $0.persistentModelID == stampID }) {
+            Button("Edit...") {
+                selectedStamp = stamp
+            }
+            Divider()
+            Menu("Set Status") {
+                ForEach(CollectionStatus.allCases) { status in
+                    Button {
+                        stamp.collectionStatus = status
+                    } label: {
+                        if stamp.collectionStatus == status {
+                            Label(status.displayName, systemImage: "checkmark")
+                        } else {
+                            Text(status.displayName)
+                        }
+                    }
+                }
+            }
+            Divider()
+            Button("Delete", role: .destructive) {
+                modelContext.delete(stamp)
+            }
+        }
+    }
+
+    private var emptyStateView: some View {
+        ContentUnavailableView {
+            Label("No Stamps", systemImage: "stamp")
+        } description: {
+            if filterState.hasActiveFilters {
+                Text("No stamps match your current filters.")
+            } else if sidebarSelection == nil {
+                Text("Select a collection or album from the sidebar.")
+            } else {
+                Text("Add stamps to get started.")
+            }
+        } actions: {
+            if currentAlbum != nil {
+                Button("Add Stamp") {
+                    isAddingStamp = true
+                }
+                .buttonStyle(.borderedProminent)
+            }
+        }
+    }
+
+    // MARK: - Toolbar
+
+    @ToolbarContentBuilder
+    private var toolbarContent: some ToolbarContent {
+        ToolbarItemGroup {
+            Menu {
+                Button {
+                    isImporting = true
+                } label: {
+                    Label("Import CSV...", systemImage: "square.and.arrow.down")
+                }
+                .disabled(currentAlbum == nil)
+
+                Button {
+                    isExporting = true
+                } label: {
+                    Label("Export CSV...", systemImage: "square.and.arrow.up")
+                }
+                .disabled(filteredStamps.isEmpty)
+
+                Divider()
+
+                Button {
+                    isPopulatingRange = true
+                } label: {
+                    Label("Populate Number Range...", systemImage: "number.square")
+                }
+                .disabled(currentAlbum == nil)
+            } label: {
+                Label("More", systemImage: "ellipsis.circle")
+            }
+            .help("Import, export, and other options")
+
+            Toggle(isOn: $quickAddMode) {
+                Label("Quick Add", systemImage: "bolt.fill")
+            }
+            .help("Quick Add Mode: simplified form for fast batch entry")
+
+            Button {
+                isAddingStamp = true
+            } label: {
+                Label("Add Stamp", systemImage: "plus")
+            }
+            .disabled(currentAlbum == nil)
+            .help("Add a new stamp to this album")
+        }
+    }
+
+    // MARK: - Helpers
+
+    private var navigationTitle: String {
+        switch sidebarSelection {
+        case .smartCollection(let type):
+            return type.displayName
+        case .album(let albumID):
+            return albums.first { $0.persistentModelID == albumID }?.name ?? "Album"
+        case .collection(let collectionID):
+            return albums.first { $0.collection?.persistentModelID == collectionID }?.collection?.name ?? "Collection"
+        case .none:
+            return "Stamps"
+        }
+    }
+
+    private var currentAlbum: Album? {
+        switch sidebarSelection {
+        case .album(let albumID):
+            return albums.first { $0.persistentModelID == albumID }
+        default:
+            return nil
+        }
+    }
+
+    private func statusColor(_ status: CollectionStatus) -> Color {
+        switch status {
+        case .owned: return .green
+        case .wanted: return .red
+        case .notCollecting: return .gray
+        }
+    }
+}
+
+// MARK: - Filter State
+
+@Observable
+final class StampFilterState {
+    var searchText: String = ""
+    var gumCondition: GumCondition?
+    var centeringGrade: CenteringGrade?
+    var countryID: PersistentIdentifier?
+    var collectionStatus: CollectionStatus?
+    var yearStart: Int?
+    var yearEnd: Int?
+    var catalogStart: String = ""
+    var catalogEnd: String = ""
+
+    var hasActiveFilters: Bool {
+        gumCondition != nil ||
+        centeringGrade != nil ||
+        countryID != nil ||
+        collectionStatus != nil ||
+        yearStart != nil ||
+        yearEnd != nil ||
+        !catalogStart.isEmpty ||
+        !catalogEnd.isEmpty
+    }
+
+    func clearFilters() {
+        gumCondition = nil
+        centeringGrade = nil
+        countryID = nil
+        collectionStatus = nil
+        yearStart = nil
+        yearEnd = nil
+        catalogStart = ""
+        catalogEnd = ""
+    }
+
+    /// Parses a catalog number into components for range comparison
+    func parseCatalogNumber(_ value: String) -> (prefix: String, number: Int, suffix: String) {
+        var prefix = ""
+        var numberStr = ""
+        var suffix = ""
+        var foundNumber = false
+
+        for char in value {
+            if char.isNumber {
+                foundNumber = true
+                numberStr.append(char)
+            } else if !foundNumber {
+                prefix.append(char)
+            } else {
+                suffix.append(char)
+            }
+        }
+
+        let number = Int(numberStr) ?? 0
+        return (prefix.uppercased(), number, suffix.lowercased())
+    }
+
+    /// Checks if a catalog number falls within the specified range
+    func catalogNumberInRange(_ catalogNumber: String) -> Bool {
+        // If no range specified, include everything
+        if catalogStart.isEmpty && catalogEnd.isEmpty {
+            return true
+        }
+
+        let parsed = parseCatalogNumber(catalogNumber)
+
+        // Check start bound
+        if !catalogStart.isEmpty {
+            let startParsed = parseCatalogNumber(catalogStart)
+            // Must match prefix
+            if parsed.prefix != startParsed.prefix {
+                return parsed.prefix > startParsed.prefix
+            }
+            if parsed.number < startParsed.number {
+                return false
+            }
+        }
+
+        // Check end bound
+        if !catalogEnd.isEmpty {
+            let endParsed = parseCatalogNumber(catalogEnd)
+            // Must match prefix
+            if parsed.prefix != endParsed.prefix {
+                return parsed.prefix < endParsed.prefix
+            }
+            if parsed.number > endParsed.number {
+                return false
+            }
+        }
+
+        return true
+    }
+}
+
+// MARK: - Populate Range Sheet
+
+struct PopulateRangeSheet: View {
+    @Environment(\.modelContext) private var modelContext
+    @Environment(\.dismiss) private var dismiss
+
+    let album: Album
+
+    @State private var prefix = ""
+    @State private var startNumber = ""
+    @State private var endNumber = ""
+    @State private var defaultStatus: CollectionStatus = .wanted
+
+    private var isValid: Bool {
+        guard let start = Int(startNumber), let end = Int(endNumber) else {
+            return false
+        }
+        return start > 0 && end >= start && (end - start) <= 5000
+    }
+
+    private var rangeDescription: String {
+        guard let start = Int(startNumber), let end = Int(endNumber), start > 0, end >= start else {
+            return ""
+        }
+        let count = end - start + 1
+        let firstNum = prefix.isEmpty ? "\(start)" : "\(prefix)\(start)"
+        let lastNum = prefix.isEmpty ? "\(end)" : "\(prefix)\(end)"
+        return "This will create \(count) entries: \(firstNum) through \(lastNum)"
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    Text("Create placeholder entries for a range of catalog numbers. This is useful for setting up a want list without entering individual stamps manually.")
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                }
+
+                Section {
+                    TextField("Prefix (optional)", text: $prefix)
+                        .textFieldStyle(.roundedBorder)
+
+                    HStack {
+                        TextField("Start", text: $startNumber)
+                            .textFieldStyle(.roundedBorder)
+                        Text("to")
+                        TextField("End", text: $endNumber)
+                            .textFieldStyle(.roundedBorder)
+                    }
+                } header: {
+                    Text("Catalog Number Format")
+                } footer: {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Examples:")
+                            .fontWeight(.medium)
+                        Text("• Regular stamps: leave prefix empty, enter 1 to 500")
+                        Text("• Airmail: prefix \"C\", enter 1 to 150")
+                        Text("• Officials: prefix \"O\", enter 1 to 50")
+                        Text("• Semi-postals: prefix \"B\", enter 1 to 100")
+                    }
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                }
+
+                Section("Default Status") {
+                    Picker("Status for new entries", selection: $defaultStatus) {
+                        ForEach(CollectionStatus.allCases) { status in
+                            Text(status.displayName).tag(status)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                }
+
+                if !rangeDescription.isEmpty {
+                    Section {
+                        Text(rangeDescription)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+            .formStyle(.grouped)
+            .navigationTitle("Populate Number Range")
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Create") {
+                        createEntries()
+                        dismiss()
+                    }
+                    .disabled(!isValid)
+                }
+            }
+        }
+        .frame(minWidth: 450, minHeight: 450)
+    }
+
+    private func createEntries() {
+        guard let start = Int(startNumber), let end = Int(endNumber) else { return }
+
+        for number in start...end {
+            let catalogNumber = prefix.isEmpty ? "\(number)" : "\(prefix)\(number)"
+            let stamp = Stamp(
+                catalogNumber: catalogNumber,
+                collectionStatus: defaultStatus,
+                album: album
+            )
+            modelContext.insert(stamp)
+        }
+    }
+}
+
+// MARK: - CSV Document
+
+import UniformTypeIdentifiers
+
+struct StampCSVDocument: FileDocument {
+    static var readableContentTypes: [UTType] { [.commaSeparatedText] }
+
+    let stamps: [Stamp]
+
+    init(stamps: [Stamp]) {
+        self.stamps = stamps
+    }
+
+    init(configuration: ReadConfiguration) throws {
+        stamps = []
+    }
+
+    func fileWrapper(configuration: WriteConfiguration) throws -> FileWrapper {
+        let csv = generateCSV()
+        let data = csv.data(using: .utf8) ?? Data()
+        return FileWrapper(regularFileWithContents: data)
+    }
+
+    private func generateCSV() -> String {
+        var lines: [String] = []
+
+        // Header
+        lines.append("Catalog Number,Country,Year,Denomination,Color,Gum Condition,Centering Grade,Status,Notes")
+
+        // Data rows
+        for stamp in stamps {
+            let fields = [
+                escapeCSV(stamp.catalogNumber),
+                escapeCSV(stamp.collectionCountry?.name ?? ""),
+                stamp.yearOfIssue.map { String($0) } ?? "",
+                escapeCSV(stamp.denomination),
+                escapeCSV(stamp.color),
+                stamp.gumCondition.rawValue,
+                stamp.centeringGrade.rawValue,
+                stamp.collectionStatus.rawValue,
+                escapeCSV(stamp.notes)
+            ]
+            lines.append(fields.joined(separator: ","))
+        }
+
+        return lines.joined(separator: "\n")
+    }
+
+    private func escapeCSV(_ value: String) -> String {
+        if value.contains(",") || value.contains("\"") || value.contains("\n") {
+            return "\"\(value.replacingOccurrences(of: "\"", with: "\"\""))\""
+        }
+        return value
+    }
+}
+
+// MARK: - Natural Catalog Number Comparator
+
+/// Compares catalog numbers naturally, handling prefixes like "C", "O", "B" and numeric sorting
+struct NaturalCatalogComparator: SortComparator {
+    var order: SortOrder = .forward
+
+    func compare(_ lhs: String, _ rhs: String) -> ComparisonResult {
+        let lhsParsed = parseCatalogNumber(lhs)
+        let rhsParsed = parseCatalogNumber(rhs)
+
+        // Compare prefix first (alphabetically)
+        let prefixComparison = lhsParsed.prefix.localizedCompare(rhsParsed.prefix)
+        if prefixComparison != .orderedSame {
+            return order == .forward ? prefixComparison : prefixComparison.inverted
+        }
+
+        // Compare numeric part
+        if lhsParsed.number != rhsParsed.number {
+            let result: ComparisonResult = lhsParsed.number < rhsParsed.number ? .orderedAscending : .orderedDescending
+            return order == .forward ? result : result.inverted
+        }
+
+        // Compare suffix (alphabetically)
+        let suffixComparison = lhsParsed.suffix.localizedCompare(rhsParsed.suffix)
+        return order == .forward ? suffixComparison : suffixComparison.inverted
+    }
+
+    private func parseCatalogNumber(_ value: String) -> (prefix: String, number: Int, suffix: String) {
+        var prefix = ""
+        var numberStr = ""
+        var suffix = ""
+        var foundNumber = false
+
+        for char in value {
+            if char.isNumber {
+                foundNumber = true
+                numberStr.append(char)
+            } else if !foundNumber {
+                prefix.append(char)
+            } else {
+                suffix.append(char)
+            }
+        }
+
+        let number = Int(numberStr) ?? 0
+        return (prefix.uppercased(), number, suffix.lowercased())
+    }
+}
+
+extension ComparisonResult {
+    var inverted: ComparisonResult {
+        switch self {
+        case .orderedAscending: return .orderedDescending
+        case .orderedDescending: return .orderedAscending
+        case .orderedSame: return .orderedSame
+        }
+    }
+}
+
+#Preview {
+    StampListView(
+        filterState: StampFilterState(),
+        sidebarSelection: nil,
+        selectedStamp: .constant(nil)
+    )
+    .modelContainer(for: Stamp.self, inMemory: true)
+}
