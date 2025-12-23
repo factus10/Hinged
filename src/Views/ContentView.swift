@@ -20,30 +20,15 @@ struct ContentView: View {
             StampListView(
                 filterState: filterState,
                 sidebarSelection: sidebarSelection,
-                selectedStamp: $selectedStamp
+                selectedStamp: $selectedStamp,
+                showingGapAnalysis: $showingGapAnalysis,
+                showingCountryManagement: $showingCountryManagement
             )
         } detail: {
             detailView
                 .navigationSplitViewColumnWidth(min: 300, ideal: 350, max: 450)
         }
         .searchable(text: $filterState.searchText, prompt: "Search stamps...")
-        .toolbar {
-            ToolbarItemGroup(placement: .primaryAction) {
-                Button {
-                    showingCountryManagement = true
-                } label: {
-                    Label("Countries", systemImage: "globe")
-                }
-                .help("Manage countries and catalog prefixes")
-
-                Button {
-                    showingGapAnalysis = true
-                } label: {
-                    Label("Gap Analysis", systemImage: "chart.bar.doc.horizontal")
-                }
-                .help("Analyze collection gaps by country and year range")
-            }
-        }
         .sheet(isPresented: $showingGapAnalysis) {
             GapAnalysisView()
         }
@@ -58,7 +43,8 @@ struct ContentView: View {
     @ViewBuilder
     private var detailView: some View {
         if let stamp = selectedStamp {
-            StampDetailView(stamp: stamp)
+            StampDetailView(stamp: stamp, countries: countries)
+                .id(stamp.persistentModelID)
         } else {
             ContentUnavailableView(
                 "No Selection",

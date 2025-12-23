@@ -3,10 +3,11 @@ import SwiftData
 
 struct StampDetailView: View {
     @Bindable var stamp: Stamp
-    @Environment(\.modelContext) private var modelContext
-    @Query(sort: \Country.name) private var countries: [Country]
+    let countries: [Country]
 
     @State private var isEditingImage = false
+    @State private var loadedImage: NSImage?
+    @State private var imageLoadTask: Task<Void, Never>?
 
     private var isWorldwideCollection: Bool {
         stamp.album?.collection?.isWorldwide ?? false
@@ -23,6 +24,10 @@ struct StampDetailView: View {
         }
         .formStyle(.grouped)
         .navigationTitle("Stamp Details")
+        .task(id: stamp.persistentModelID) {
+            // Load image asynchronously to not block the UI
+            await loadImage()
+        }
         .toolbar {
             ToolbarItem {
                 Menu {
@@ -58,8 +63,7 @@ struct StampDetailView: View {
 
     private var stampImageView: some View {
         Group {
-            if let imageData = stamp.imageData,
-               let nsImage = NSImage(data: imageData) {
+            if let nsImage = loadedImage {
                 Image(nsImage: nsImage)
                     .resizable()
                     .aspectRatio(contentMode: .fit)
@@ -69,6 +73,10 @@ struct StampDetailView: View {
                     .onTapGesture {
                         isEditingImage = true
                     }
+            } else if stamp.imageData != nil {
+                // Image is loading
+                ProgressView()
+                    .frame(width: 200, height: 200)
             } else {
                 Button {
                     isEditingImage = true
@@ -101,8 +109,21 @@ struct StampDetailView: View {
                 }
                 Button("Remove Image", role: .destructive) {
                     stamp.imageData = nil
+                    loadedImage = nil
                 }
             }
+        }
+    }
+
+    private func loadImage() async {
+        loadedImage = nil
+        guard let imageData = stamp.imageData else { return }
+        // Load image on background thread
+        let image = await Task.detached(priority: .userInitiated) {
+            NSImage(data: imageData)
+        }.value
+        await MainActor.run {
+            loadedImage = image
         }
     }
 
@@ -115,6 +136,10 @@ struct StampDetailView: View {
                 if let data = try? Data(contentsOf: url) {
                     stamp.imageData = data
                     stamp.markUpdated()
+                    // Load the new image
+                    if let newImage = NSImage(data: data) {
+                        loadedImage = newImage
+                    }
                 }
             }
         case .failure(let error):

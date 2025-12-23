@@ -1,11 +1,61 @@
 import SwiftUI
 import SwiftData
 
+// MARK: - Checked Stamps Manager (isolated state for checkboxes)
+
+@Observable
+final class CheckedStampsManager {
+    var checked: Set<PersistentIdentifier> = []
+
+    func isChecked(_ id: PersistentIdentifier) -> Bool {
+        checked.contains(id)
+    }
+
+    func toggle(_ id: PersistentIdentifier) {
+        if checked.contains(id) {
+            checked.remove(id)
+        } else {
+            checked.insert(id)
+        }
+    }
+
+    func clear() {
+        checked.removeAll()
+    }
+
+    func checkAll(_ ids: [PersistentIdentifier]) {
+        checked.formUnion(ids)
+    }
+
+    func uncheckAll(_ ids: [PersistentIdentifier]) {
+        checked.subtract(ids)
+    }
+}
+
+// MARK: - Stamp Checkbox (isolated view for fast toggling)
+
+struct StampCheckbox: View {
+    let stampID: PersistentIdentifier
+    @Bindable var manager: CheckedStampsManager
+
+    var body: some View {
+        Button {
+            manager.toggle(stampID)
+        } label: {
+            Image(systemName: manager.isChecked(stampID) ? "checkmark.square.fill" : "square")
+                .foregroundStyle(manager.isChecked(stampID) ? Color.accentColor : .secondary)
+        }
+        .buttonStyle(.plain)
+    }
+}
+
 struct StampListView: View {
     @Environment(\.modelContext) private var modelContext
     @Bindable var filterState: StampFilterState
     let sidebarSelection: SidebarSelection?
     @Binding var selectedStamp: Stamp?
+    @Binding var showingGapAnalysis: Bool
+    @Binding var showingCountryManagement: Bool
 
     @Query private var allStamps: [Stamp]
     @Query private var albums: [Album]
@@ -19,15 +69,22 @@ struct StampListView: View {
     @State private var isExporting = false
     @State private var isImporting = false
     @State private var sortOrder = [KeyPathComparator(\Stamp.catalogNumber, comparator: NaturalCatalogComparator())]
+    @State private var checkedManager = CheckedStampsManager()
+    @State private var showBulkDeleteConfirmation = false
+    @State private var pendingDeleteCount = 0
 
     init(
         filterState: StampFilterState,
         sidebarSelection: SidebarSelection?,
-        selectedStamp: Binding<Stamp?>
+        selectedStamp: Binding<Stamp?>,
+        showingGapAnalysis: Binding<Bool>,
+        showingCountryManagement: Binding<Bool>
     ) {
         self.filterState = filterState
         self.sidebarSelection = sidebarSelection
         self._selectedStamp = selectedStamp
+        self._showingGapAnalysis = showingGapAnalysis
+        self._showingCountryManagement = showingCountryManagement
     }
 
     private var filteredStamps: [Stamp] {
@@ -101,6 +158,50 @@ struct StampListView: View {
         return stamps.sorted(using: sortOrder)
     }
 
+    // MARK: - Bulk Selection Helpers
+
+    private func allChecked(in stamps: [Stamp]) -> Bool {
+        !stamps.isEmpty && stamps.allSatisfy { checkedManager.isChecked($0.persistentModelID) }
+    }
+
+    private func someChecked(in stamps: [Stamp]) -> Bool {
+        stamps.contains { checkedManager.isChecked($0.persistentModelID) }
+    }
+
+    private func checkedCount(in stamps: [Stamp]) -> Int {
+        stamps.filter { checkedManager.isChecked($0.persistentModelID) }.count
+    }
+
+    private func toggleAllChecked(in stamps: [Stamp]) {
+        let ids = stamps.map { $0.persistentModelID }
+        if allChecked(in: stamps) {
+            checkedManager.uncheckAll(ids)
+        } else {
+            checkedManager.checkAll(ids)
+        }
+    }
+
+    private func bulkDelete(from stamps: [Stamp]) {
+        for stamp in stamps where checkedManager.isChecked(stamp.persistentModelID) {
+            modelContext.delete(stamp)
+        }
+        // Reset all selection state
+        checkedManager.clear()
+        selectedStampID = nil
+        selectedStamp = nil
+    }
+
+    private func bulkSetStatus(_ status: CollectionStatus, in stamps: [Stamp]) {
+        for stamp in stamps where checkedManager.isChecked(stamp.persistentModelID) {
+            stamp.collectionStatus = status
+        }
+        // Reset selection to avoid stale state (especially in Smart Collections where
+        // stamps may be filtered out after status change)
+        checkedManager.clear()
+        selectedStampID = nil
+        selectedStamp = nil
+    }
+
     private var catalogSystem: CatalogSystem {
         switch sidebarSelection {
         case .album(let albumID):
@@ -137,9 +238,12 @@ struct StampListView: View {
     }
 
     var body: some View {
+        let stamps = filteredStamps  // Compute once per render
+
         VStack(spacing: 0) {
             filterBar
-            stampTable
+            bulkActionsBar(stamps: stamps)
+            stampTable(stamps: stamps)
         }
         .navigationTitle(navigationTitle)
         .toolbar {
@@ -151,7 +255,11 @@ struct StampListView: View {
                 quickAddMode: quickAddMode
             )
         }
-        .sheet(isPresented: $isPopulatingRange) {
+        .sheet(isPresented: $isPopulatingRange, onDismiss: {
+            // Reset selection after populating to avoid stale state
+            selectedStampID = nil
+            selectedStamp = nil
+        }) {
             if let album = currentAlbum {
                 PopulateRangeSheet(album: album)
             }
@@ -170,6 +278,21 @@ struct StampListView: View {
             allowsMultipleSelection: false
         ) { result in
             handleCSVImport(result)
+        }
+        .alert(
+            "Delete \(pendingDeleteCount) Stamps?",
+            isPresented: $showBulkDeleteConfirmation
+        ) {
+            Button("Cancel", role: .cancel) { }
+            Button("Delete", role: .destructive) {
+                bulkDelete(from: filteredStamps)
+            }
+        } message: {
+            Text("This will permanently delete \(pendingDeleteCount) stamps. This cannot be undone.")
+        }
+        .onChange(of: sidebarSelection) { _, _ in
+            // Clear checked stamps when switching views to avoid stale references
+            checkedManager.clear()
         }
     }
 
@@ -274,6 +397,9 @@ struct StampListView: View {
             importedCount += 1
         }
         print("CSV Import: Successfully imported \(importedCount) stamps")
+        // Reset selection to avoid stale state
+        selectedStampID = nil
+        selectedStamp = nil
     }
 
     private func parseCSVLine(_ line: String) -> [String] {
@@ -387,19 +513,92 @@ struct StampListView: View {
         .background(.bar)
     }
 
-    // MARK: - Stamp Table
+    // MARK: - Bulk Actions Bar
 
     @ViewBuilder
-    private var stampTable: some View {
-        if showCountryColumn {
-            stampTableWithCountry
-        } else {
-            stampTableWithoutCountry
+    private func bulkActionsBar(stamps: [Stamp]) -> some View {
+        let isAllChecked = allChecked(in: stamps)
+        let isSomeChecked = someChecked(in: stamps)
+        let count = checkedCount(in: stamps)
+
+        if !stamps.isEmpty {
+            VStack(spacing: 0) {
+                HStack(spacing: 12) {
+                    // Select all checkbox
+                    Button {
+                        toggleAllChecked(in: stamps)
+                    } label: {
+                        Image(systemName: isAllChecked ? "checkmark.square.fill" : (isSomeChecked ? "minus.square.fill" : "square"))
+                            .foregroundStyle(isAllChecked || isSomeChecked ? Color.accentColor : .secondary)
+                    }
+                    .buttonStyle(.plain)
+                    .help(isAllChecked ? "Deselect all" : "Select all")
+
+                    if isSomeChecked {
+                        Text("\(count) selected")
+                            .foregroundStyle(.secondary)
+                            .font(.callout)
+
+                        Divider()
+                            .frame(height: 16)
+
+                        Menu {
+                            ForEach(CollectionStatus.allCases) { status in
+                                Button {
+                                    bulkSetStatus(status, in: stamps)
+                                } label: {
+                                    Label(status.displayName, systemImage: status.systemImage)
+                                }
+                            }
+                        } label: {
+                            Label("Set Status", systemImage: "arrow.triangle.2.circlepath")
+                        }
+                        .menuStyle(.borderlessButton)
+                        .fixedSize()
+
+                        Button(role: .destructive) {
+                            pendingDeleteCount = count
+                            showBulkDeleteConfirmation = true
+                        } label: {
+                            Label("Delete", systemImage: "trash")
+                        }
+                        .buttonStyle(.borderless)
+                        .foregroundStyle(.red)
+                    } else {
+                        Text("Select stamps to perform bulk actions")
+                            .foregroundStyle(.tertiary)
+                            .font(.callout)
+                    }
+
+                    Spacer()
+                }
+                .padding(.horizontal)
+                .padding(.vertical, 6)
+
+                Divider()
+            }
+            .background(.bar)
         }
     }
 
-    private var stampTableWithCountry: some View {
-        Table(filteredStamps, selection: $selectedStampID, sortOrder: $sortOrder) {
+    // MARK: - Stamp Table
+
+    @ViewBuilder
+    private func stampTable(stamps: [Stamp]) -> some View {
+        if showCountryColumn {
+            stampTableWithCountry(stamps: stamps)
+        } else {
+            stampTableWithoutCountry(stamps: stamps)
+        }
+    }
+
+    private func stampTableWithCountry(stamps: [Stamp]) -> some View {
+        Table(stamps, selection: $selectedStampID, sortOrder: $sortOrder) {
+            TableColumn("") { stamp in
+                StampCheckbox(stampID: stamp.persistentModelID, manager: checkedManager)
+            }
+            .width(30)
+
             TableColumn(catalogSystem.catalogNumberLabel, value: \.catalogNumber, comparator: NaturalCatalogComparator()) { stamp in
                 Text(stamp.catalogNumber)
                     .fontWeight(.medium)
@@ -442,22 +641,35 @@ struct StampListView: View {
             .width(70)
         }
         .onChange(of: selectedStampID) { _, newValue in
-            selectedStamp = newValue.flatMap { id in
-                allStamps.first { $0.persistentModelID == id }
+            // Use withTransaction to update without animation for snappier feel
+            var transaction = Transaction()
+            transaction.disablesAnimations = true
+            withTransaction(transaction) {
+                if let id = newValue {
+                    selectedStamp = stamps.first { $0.persistentModelID == id }
+                        ?? allStamps.first { $0.persistentModelID == id }
+                } else {
+                    selectedStamp = nil
+                }
             }
         }
         .contextMenu(forSelectionType: PersistentIdentifier.self) { stampIDs in
             stampContextMenu(for: stampIDs)
         }
         .overlay {
-            if filteredStamps.isEmpty {
+            if stamps.isEmpty {
                 emptyStateView
             }
         }
     }
 
-    private var stampTableWithoutCountry: some View {
-        Table(filteredStamps, selection: $selectedStampID, sortOrder: $sortOrder) {
+    private func stampTableWithoutCountry(stamps: [Stamp]) -> some View {
+        Table(stamps, selection: $selectedStampID, sortOrder: $sortOrder) {
+            TableColumn("") { stamp in
+                StampCheckbox(stampID: stamp.persistentModelID, manager: checkedManager)
+            }
+            .width(30)
+
             TableColumn(catalogSystem.catalogNumberLabel, value: \.catalogNumber, comparator: NaturalCatalogComparator()) { stamp in
                 Text(stamp.catalogNumber)
                     .fontWeight(.medium)
@@ -495,15 +707,23 @@ struct StampListView: View {
             .width(70)
         }
         .onChange(of: selectedStampID) { _, newValue in
-            selectedStamp = newValue.flatMap { id in
-                allStamps.first { $0.persistentModelID == id }
+            // Use withTransaction to update without animation for snappier feel
+            var transaction = Transaction()
+            transaction.disablesAnimations = true
+            withTransaction(transaction) {
+                if let id = newValue {
+                    selectedStamp = stamps.first { $0.persistentModelID == id }
+                        ?? allStamps.first { $0.persistentModelID == id }
+                } else {
+                    selectedStamp = nil
+                }
             }
         }
         .contextMenu(forSelectionType: PersistentIdentifier.self) { stampIDs in
             stampContextMenu(for: stampIDs)
         }
         .overlay {
-            if filteredStamps.isEmpty {
+            if stamps.isEmpty {
                 emptyStateView
             }
         }
@@ -562,7 +782,23 @@ struct StampListView: View {
 
     @ToolbarContentBuilder
     private var toolbarContent: some ToolbarContent {
-        ToolbarItemGroup {
+        ToolbarItemGroup(placement: .navigation) {
+            Button {
+                showingCountryManagement = true
+            } label: {
+                Label("Countries", systemImage: "globe")
+            }
+            .help("Manage countries and catalog prefixes")
+
+            Button {
+                showingGapAnalysis = true
+            } label: {
+                Label("Gap Analysis", systemImage: "chart.bar.doc.horizontal")
+            }
+            .help("Analyze collection gaps by country and year range")
+        }
+
+        ToolbarItemGroup(placement: .primaryAction) {
             Menu {
                 Button {
                     isImporting = true
@@ -967,7 +1203,9 @@ extension ComparisonResult {
     StampListView(
         filterState: StampFilterState(),
         sidebarSelection: nil,
-        selectedStamp: .constant(nil)
+        selectedStamp: .constant(nil),
+        showingGapAnalysis: .constant(false),
+        showingCountryManagement: .constant(false)
     )
     .modelContainer(for: Stamp.self, inMemory: true)
 }

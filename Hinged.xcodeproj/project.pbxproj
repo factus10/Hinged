@@ -23,6 +23,7 @@
 		A1000014000000000000000E /* CountryManagementView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000015000000000000000F /* CountryManagementView.swift */; };
 		A1000015000000000000000F /* FocusedValues.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000016000000000000001F /* FocusedValues.swift */; };
 		A1000016000000000000001F /* FlowLayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000017000000000000002F /* FlowLayout.swift */; };
+		A1000017000000000000003F /* HelpView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000018000000000000003F /* HelpView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -44,6 +45,7 @@
 		A2000015000000000000000F /* CountryManagementView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CountryManagementView.swift; sourceTree = "<group>"; };
 		A2000016000000000000001F /* FocusedValues.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FocusedValues.swift; sourceTree = "<group>"; };
 		A2000017000000000000002F /* FlowLayout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlowLayout.swift; sourceTree = "<group>"; };
+		A2000018000000000000003F /* HelpView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelpView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -108,6 +110,7 @@
 				A2000012000000000000000C /* StampDetailView.swift */,
 				A2000014000000000000000E /* GapAnalysisView.swift */,
 				A2000015000000000000000F /* CountryManagementView.swift */,
+				A2000018000000000000003F /* HelpView.swift */,
 				A50000060000000000000006 /* Components */,
 			);
 			path = Views;
@@ -205,6 +208,7 @@
 				A1000014000000000000000E /* CountryManagementView.swift in Sources */,
 				A1000015000000000000000F /* FocusedValues.swift in Sources */,
 				A1000016000000000000001F /* FlowLayout.swift in Sources */,
+				A1000017000000000000003F /* HelpView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -347,7 +351,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.factus10.Hinged;
 				PRODUCT_NAME = Hinged;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -373,7 +377,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.factus10.Hinged;
 				PRODUCT_NAME = Hinged;
 				SWIFT_EMIT_LOC_STRINGS = YES;

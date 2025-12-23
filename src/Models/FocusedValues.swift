@@ -17,6 +17,7 @@ extension FocusedValues {
 // MARK: - Album Actions
 
 struct AlbumActions {
+    var add: () -> Void
     var rename: () -> Void
     var delete: () -> Void
 }
@@ -48,6 +49,7 @@ extension FocusedValues {
 // MARK: - Collection Actions
 
 struct CollectionActions {
+    var add: () -> Void
     var edit: () -> Void
     var delete: () -> Void
 }

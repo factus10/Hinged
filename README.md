@@ -31,7 +31,7 @@ Hinged helps philatelists organize and track their stamp collections. The app su
 
 ### Collection Organization
 
-- **Collections**: Top-level organizational units that define the catalog system (Scott, Michel, Stanley Gibbons, Yvert) and country scope
+- **Collections**: Top-level organizational units that define the catalog system (Scott, Michel, Stanley Gibbons, Yvert, Sakura, Facit) and country scope
 - **Albums**: Subdivisions within collections for organizing stamps by theme, year range, or any preferred grouping
 - **Smart Collections**: Automatic filters for viewing stamps across all collections:
   - All Owned
@@ -74,6 +74,13 @@ Hinged helps philatelists organize and track their stamp collections. The app su
 - View completion percentage
 - Filter by owned or wanted stamps
 
+### Bulk Actions
+
+- Select multiple stamps using checkboxes in the stamp list
+- Select all visible stamps with the header checkbox
+- Bulk status change (set all selected to Owned, Wanted, or Not Collecting)
+- Bulk delete with confirmation
+
 ### Additional Features
 
 - Quick Add Mode for rapid batch entry
@@ -81,6 +88,7 @@ Hinged helps philatelists organize and track their stamp collections. The app su
 - Sortable columns with natural catalog number sorting
 - Comprehensive filtering by country, condition, grade, status, year range, and catalog number range
 - Image storage for stamp scans or photos
+- In-app help system (Help menu or Cmd+?)
 
 ## Getting Started
 
@@ -89,7 +97,7 @@ Hinged helps philatelists organize and track their stamp collections. The app su
 1. Click the **+** button in the sidebar
 2. Select **New Collection...**
 3. Enter a name for your collection
-4. Choose a catalog system (Scott, Michel, Stanley Gibbons, or Yvert)
+4. Choose a catalog system (Scott, Michel, Stanley Gibbons, Yvert, Sakura, or Facit)
 5. Select a country, or leave as "Worldwide" for a multi-country collection
 6. Click **Create**
 
@@ -179,9 +187,12 @@ Click the chart icon in the toolbar to analyze your collection:
 
 ## Keyboard Shortcuts
 
+- **Cmd+Shift+N**: Add new collection
+- **Cmd+Option+N**: Add new album (when collection selected)
 - **Cmd+Shift+E**: Edit selected collection
 - **Cmd+Shift+R**: Rename selected album
 - **Cmd+Delete**: Delete selected album
+- **Cmd+?**: Open help
 
 ## Data Storage
 

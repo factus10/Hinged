@@ -33,6 +33,7 @@ struct HingedApp: App {
         #endif
         .commands {
             AboutCommand()
+            HelpCommand()
             CollectionCommands()
             AlbumCommands()
         }
@@ -43,6 +44,12 @@ struct HingedApp: App {
         }
         .windowStyle(.hiddenTitleBar)
         .windowResizability(.contentSize)
+        .defaultPosition(.center)
+
+        Window("Hinged Help", id: "help") {
+            HelpView()
+        }
+        .defaultSize(width: 800, height: 600)
         .defaultPosition(.center)
         #endif
     }
@@ -58,6 +65,21 @@ struct AboutCommand: Commands {
             Button("About Hinged") {
                 openWindow(id: "about")
             }
+        }
+    }
+}
+
+// MARK: - Help Command
+
+struct HelpCommand: Commands {
+    @Environment(\.openWindow) private var openWindow
+
+    var body: some Commands {
+        CommandGroup(replacing: .help) {
+            Button("Hinged Help") {
+                openWindow(id: "help")
+            }
+            .keyboardShortcut("?", modifiers: [.command])
         }
     }
 }
@@ -121,13 +143,18 @@ struct CollectionCommands: Commands {
 
     var body: some Commands {
         CommandMenu("Collection") {
+            Button("Add Collection...") {
+                collectionActions?.add()
+            }
+            .keyboardShortcut("n", modifiers: [.command, .shift])
+
+            Divider()
+
             Button("Edit Collection...") {
                 collectionActions?.edit()
             }
             .keyboardShortcut("e", modifiers: [.command, .shift])
             .disabled(selectedCollection == nil)
-
-            Divider()
 
             Button("Delete Collection") {
                 collectionActions?.delete()
@@ -141,10 +168,19 @@ struct CollectionCommands: Commands {
 
 struct AlbumCommands: Commands {
     @FocusedValue(\.selectedAlbum) var selectedAlbum
+    @FocusedValue(\.selectedCollection) var selectedCollection
     @FocusedValue(\.albumActions) var albumActions
 
     var body: some Commands {
         CommandMenu("Album") {
+            Button("Add Album...") {
+                albumActions?.add()
+            }
+            .keyboardShortcut("n", modifiers: [.command, .option])
+            .disabled(selectedCollection == nil)
+
+            Divider()
+
             Button("Rename Album...") {
                 albumActions?.rename()
             }

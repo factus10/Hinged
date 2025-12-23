@@ -13,6 +13,7 @@ struct SidebarView: View {
     @State private var albumToRename: Album?
     @State private var albumToDelete: Album?
     @State private var showDeleteConfirmation = false
+    @State private var expandedCollections: Set<PersistentIdentifier> = []
 
     private var selectedAlbum: Album? {
         guard case .album(let albumID) = selection else { return nil }
@@ -32,19 +33,37 @@ struct SidebarView: View {
         .listStyle(.sidebar)
         .navigationTitle("Stamps")
         .focusedSceneValue(\.selectedAlbum, selectedAlbum)
-        .focusedSceneValue(\.albumActions, selectedAlbum.map { album in
-            AlbumActions(
-                rename: { albumToRename = album },
-                delete: { handleDeleteAlbum(album) }
-            )
-        })
+        .focusedSceneValue(\.albumActions, AlbumActions(
+            add: {
+                if let collection = selectedCollection {
+                    selectedCollectionForAlbum = collection
+                }
+            },
+            rename: {
+                if let album = selectedAlbum {
+                    albumToRename = album
+                }
+            },
+            delete: {
+                if let album = selectedAlbum {
+                    handleDeleteAlbum(album)
+                }
+            }
+        ))
         .focusedSceneValue(\.selectedCollection, selectedCollection)
-        .focusedSceneValue(\.collectionActions, selectedCollection.map { collection in
-            CollectionActions(
-                edit: { collectionToEdit = collection },
-                delete: { deleteCollection(collection) }
-            )
-        })
+        .focusedSceneValue(\.collectionActions, CollectionActions(
+            add: { isAddingCollection = true },
+            edit: {
+                if let collection = selectedCollection {
+                    collectionToEdit = collection
+                }
+            },
+            delete: {
+                if let collection = selectedCollection {
+                    deleteCollection(collection)
+                }
+            }
+        ))
         .toolbar {
             ToolbarItemGroup {
                 Menu {
@@ -71,6 +90,12 @@ struct SidebarView: View {
         }
         .sheet(item: $selectedCollectionForAlbum) { collection in
             AddAlbumSheet(collection: collection)
+        }
+        .onChange(of: selectedCollectionForAlbum) { oldValue, newValue in
+            // When sheet is dismissed (newValue becomes nil), expand the parent collection
+            if let collection = oldValue, newValue == nil {
+                expandedCollections.insert(collection.persistentModelID)
+            }
         }
         .sheet(item: $albumToRename) { album in
             RenameAlbumSheet(album: album)
@@ -133,7 +158,16 @@ struct SidebarView: View {
     }
 
     private func collectionRow(_ collection: Collection) -> some View {
-        DisclosureGroup {
+        DisclosureGroup(isExpanded: Binding(
+            get: { expandedCollections.contains(collection.persistentModelID) },
+            set: { isExpanded in
+                if isExpanded {
+                    expandedCollections.insert(collection.persistentModelID)
+                } else {
+                    expandedCollections.remove(collection.persistentModelID)
+                }
+            }
+        )) {
             if let albums = collection.albums, !albums.isEmpty {
                 ForEach(albums.sorted(by: { $0.sortOrder < $1.sortOrder })) { album in
                     albumRow(album)
