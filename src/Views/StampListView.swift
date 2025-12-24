@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import Combine
 
 // MARK: - Checked Stamps Manager (isolated state for checkboxes)
 
@@ -47,6 +48,14 @@ final class CheckedStampsManager {
     func checkedCount(in ids: Set<PersistentIdentifier>) -> Int {
         checked.intersection(ids).count
     }
+}
+
+// MARK: - Import Duplicate Handling
+
+enum ImportDuplicateAction: String, CaseIterable {
+    case skip = "Skip duplicates"
+    case update = "Update existing"
+    case createNew = "Create duplicates"
 }
 
 // MARK: - Stamp Checkbox (observes manager directly to isolate re-renders)
@@ -337,6 +346,8 @@ struct StampListView: View {
     @State private var checkedManager = CheckedStampsManager()
     @State private var showBulkDeleteConfirmation = false
     @State private var pendingDeleteCount = 0
+    @State private var showImportOptionsDialog = false
+    @State private var pendingImportURL: URL?
 
     init(
         filterState: StampFilterState,
@@ -561,9 +572,48 @@ struct StampListView: View {
         } message: {
             Text("This will permanently delete \(pendingDeleteCount) stamps. This cannot be undone.")
         }
+        .confirmationDialog(
+            "Import Options",
+            isPresented: $showImportOptionsDialog,
+            titleVisibility: .visible
+        ) {
+            Button("Skip duplicates") {
+                if let url = pendingImportURL, let album = currentAlbum {
+                    importCSV(from: url, into: album, duplicateAction: .skip)
+                    pendingImportURL = nil
+                }
+            }
+            Button("Update existing") {
+                if let url = pendingImportURL, let album = currentAlbum {
+                    importCSV(from: url, into: album, duplicateAction: .update)
+                    pendingImportURL = nil
+                }
+            }
+            Button("Create duplicates") {
+                if let url = pendingImportURL, let album = currentAlbum {
+                    importCSV(from: url, into: album, duplicateAction: .createNew)
+                    pendingImportURL = nil
+                }
+            }
+            Button("Cancel", role: .cancel) {
+                pendingImportURL = nil
+            }
+        } message: {
+            Text("How should duplicate catalog numbers be handled?")
+        }
         .onChange(of: sidebarSelection) { _, _ in
             // Clear checked stamps when switching views to avoid stale references
             checkedManager.clear()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .exportCSV)) { _ in
+            if !filteredStamps.isEmpty {
+                isExporting = true
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .importCSV)) { _ in
+            if currentAlbum != nil {
+                isImporting = true
+            }
         }
     }
 
@@ -573,7 +623,7 @@ struct StampListView: View {
     }
 
     private func handleCSVImport(_ result: Result<[URL], Error>) {
-        guard let album = currentAlbum else {
+        guard currentAlbum != nil else {
             print("CSV Import: No album selected")
             return
         }
@@ -583,20 +633,23 @@ struct StampListView: View {
                 print("CSV Import: No URL provided")
                 return
             }
-            // Try with security-scoped access first, fall back to direct access
-            let hasAccess = url.startAccessingSecurityScopedResource()
-            defer {
-                if hasAccess {
-                    url.stopAccessingSecurityScopedResource()
-                }
-            }
-            importCSV(from: url, into: album)
+            // Store URL and show options dialog
+            pendingImportURL = url
+            showImportOptionsDialog = true
         case .failure(let error):
             print("CSV Import error: \(error)")
         }
     }
 
-    private func importCSV(from url: URL, into album: Album) {
+    private func importCSV(from url: URL, into album: Album, duplicateAction: ImportDuplicateAction) {
+        // Handle security-scoped resource access
+        let hasAccess = url.startAccessingSecurityScopedResource()
+        defer {
+            if hasAccess {
+                url.stopAccessingSecurityScopedResource()
+            }
+        }
+
         guard let content = try? String(contentsOf: url, encoding: .utf8) else {
             print("CSV Import: Failed to read file at \(url)")
             return
@@ -623,7 +676,14 @@ struct StampListView: View {
             return
         }
 
+        // Build a lookup of existing catalog numbers in this album for duplicate detection
+        let existingStamps = album.stamps ?? []
+        let existingByNumber = Dictionary(grouping: existingStamps) { $0.catalogNumber }
+
         var importedCount = 0
+        var skippedCount = 0
+        var updatedCount = 0
+
         for i in 1..<lines.count {
             let line = lines[i].trimmingCharacters(in: .whitespaces)
             guard !line.isEmpty else { continue }
@@ -646,15 +706,46 @@ struct StampListView: View {
                 status = CollectionStatus(rawValue: statusValue) ?? .wanted
             }
 
+            // Parse field values
+            let yearOfIssue = yearIdx.flatMap { $0 < fields.count ? Int(fields[$0]) : nil }
+            let denomination = denomIdx.flatMap { $0 < fields.count ? fields[$0] : nil } ?? ""
+            let color = colorIdx.flatMap { $0 < fields.count ? fields[$0] : nil } ?? ""
+            let gumCondition = gumIdx.flatMap { $0 < fields.count ? GumCondition(rawValue: fields[$0]) : nil } ?? .unspecified
+            let centeringGrade = gradeIdx.flatMap { $0 < fields.count ? CenteringGrade(rawValue: fields[$0]) : nil } ?? .unspecified
+            let notes = notesIdx.flatMap { $0 < fields.count ? fields[$0] : nil } ?? ""
+
+            // Check for existing stamp with same catalog number
+            if let existingList = existingByNumber[catalogNumber], let existing = existingList.first {
+                switch duplicateAction {
+                case .skip:
+                    skippedCount += 1
+                    continue
+                case .update:
+                    // Update existing stamp with imported values
+                    existing.yearOfIssue = yearOfIssue
+                    existing.denomination = denomination
+                    existing.color = color
+                    existing.gumCondition = gumCondition
+                    existing.centeringGrade = centeringGrade
+                    existing.collectionStatus = status
+                    existing.notes = notes
+                    updatedCount += 1
+                    continue
+                case .createNew:
+                    // Fall through to create new stamp
+                    break
+                }
+            }
+
             let stamp = Stamp(
                 catalogNumber: catalogNumber,
-                yearOfIssue: yearIdx.flatMap { $0 < fields.count ? Int(fields[$0]) : nil },
-                denomination: denomIdx.flatMap { $0 < fields.count ? fields[$0] : nil } ?? "",
-                color: colorIdx.flatMap { $0 < fields.count ? fields[$0] : nil } ?? "",
-                gumCondition: gumIdx.flatMap { $0 < fields.count ? GumCondition(rawValue: fields[$0]) : nil } ?? .unspecified,
-                centeringGrade: gradeIdx.flatMap { $0 < fields.count ? CenteringGrade(rawValue: fields[$0]) : nil } ?? .unspecified,
+                yearOfIssue: yearOfIssue,
+                denomination: denomination,
+                color: color,
+                gumCondition: gumCondition,
+                centeringGrade: centeringGrade,
                 collectionStatus: status,
-                notes: notesIdx.flatMap { $0 < fields.count ? fields[$0] : nil } ?? "",
+                notes: notes,
                 album: album
             )
             modelContext.insert(stamp)
@@ -667,7 +758,7 @@ struct StampListView: View {
             }
             importedCount += 1
         }
-        print("CSV Import: Successfully imported \(importedCount) stamps")
+        print("CSV Import: \(importedCount) imported, \(updatedCount) updated, \(skippedCount) skipped")
         // Reset selection to avoid stale state
         selectedStamp = nil
     }
