@@ -44,7 +44,7 @@ Hinged helps philatelists organize and track their stamp collections. The app su
 ### Stamp Tracking
 
 - Catalog number with natural sorting (handles prefixes like C, O, B for airmail, officials, etc.)
-- Year of issue
+- Year of issue (single year or range, e.g., "1958" or "1958-1964")
 - Denomination
 - Color
 - Perforation gauge
@@ -157,7 +157,10 @@ Expected CSV format:
 ```
 Catalog Number,Status,Denomination,Year,Color,Gum Condition,Centering Grade,Notes
 1,wanted,5c Franklin,1847,brown,mintNeverHinged,veryFine,First US stamp
+300-300D,owned,1c-10c Pan-American,1901,various,mintHinged,fine,Complete set
 ```
+
+The Year column accepts single years (e.g., "1958") or ranges (e.g., "1958-1964").
 
 The Status column accepts:
 - `TRUE`, `YES`, `1`, `owned` for owned stamps

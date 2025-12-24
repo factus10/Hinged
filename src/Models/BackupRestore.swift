@@ -63,7 +63,8 @@ struct AlbumBackup: Codable {
 struct StampBackup: Codable {
     let id: String
     let catalogNumber: String
-    let yearOfIssue: Int?
+    let yearStart: Int?
+    let yearEnd: Int?
     let denomination: String
     let color: String
     let perforationGauge: Decimal?
@@ -80,6 +81,99 @@ struct StampBackup: Codable {
     let updatedAt: Date
     let albumId: String  // Reference to AlbumBackup.id
     let countryId: String?  // Reference to CountryBackup.id (for worldwide collections)
+
+    // Support decoding old backups with yearOfIssue field
+    private enum CodingKeys: String, CodingKey {
+        case id, catalogNumber, yearStart, yearEnd, yearOfIssue
+        case denomination, color, perforationGauge, watermark
+        case gumConditionRaw, centeringGradeRaw, collectionStatusRaw
+        case notes, purchasePrice, purchaseDate, acquisitionSource
+        case imageData, createdAt, updatedAt, albumId, countryId
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(String.self, forKey: .id)
+        catalogNumber = try container.decode(String.self, forKey: .catalogNumber)
+
+        // Handle migration from old yearOfIssue to new yearStart/yearEnd
+        if let yearOfIssue = try container.decodeIfPresent(Int.self, forKey: .yearOfIssue) {
+            yearStart = yearOfIssue
+            yearEnd = nil
+        } else {
+            yearStart = try container.decodeIfPresent(Int.self, forKey: .yearStart)
+            yearEnd = try container.decodeIfPresent(Int.self, forKey: .yearEnd)
+        }
+
+        denomination = try container.decode(String.self, forKey: .denomination)
+        color = try container.decode(String.self, forKey: .color)
+        perforationGauge = try container.decodeIfPresent(Decimal.self, forKey: .perforationGauge)
+        watermark = try container.decodeIfPresent(String.self, forKey: .watermark)
+        gumConditionRaw = try container.decode(String.self, forKey: .gumConditionRaw)
+        centeringGradeRaw = try container.decode(String.self, forKey: .centeringGradeRaw)
+        collectionStatusRaw = try container.decode(String.self, forKey: .collectionStatusRaw)
+        notes = try container.decode(String.self, forKey: .notes)
+        purchasePrice = try container.decodeIfPresent(Decimal.self, forKey: .purchasePrice)
+        purchaseDate = try container.decodeIfPresent(Date.self, forKey: .purchaseDate)
+        acquisitionSource = try container.decode(String.self, forKey: .acquisitionSource)
+        imageData = try container.decodeIfPresent(String.self, forKey: .imageData)
+        createdAt = try container.decode(Date.self, forKey: .createdAt)
+        updatedAt = try container.decode(Date.self, forKey: .updatedAt)
+        albumId = try container.decode(String.self, forKey: .albumId)
+        countryId = try container.decodeIfPresent(String.self, forKey: .countryId)
+    }
+
+    init(id: String, catalogNumber: String, yearStart: Int?, yearEnd: Int?,
+         denomination: String, color: String, perforationGauge: Decimal?,
+         watermark: String?, gumConditionRaw: String, centeringGradeRaw: String,
+         collectionStatusRaw: String, notes: String, purchasePrice: Decimal?,
+         purchaseDate: Date?, acquisitionSource: String, imageData: String?,
+         createdAt: Date, updatedAt: Date, albumId: String, countryId: String?) {
+        self.id = id
+        self.catalogNumber = catalogNumber
+        self.yearStart = yearStart
+        self.yearEnd = yearEnd
+        self.denomination = denomination
+        self.color = color
+        self.perforationGauge = perforationGauge
+        self.watermark = watermark
+        self.gumConditionRaw = gumConditionRaw
+        self.centeringGradeRaw = centeringGradeRaw
+        self.collectionStatusRaw = collectionStatusRaw
+        self.notes = notes
+        self.purchasePrice = purchasePrice
+        self.purchaseDate = purchaseDate
+        self.acquisitionSource = acquisitionSource
+        self.imageData = imageData
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+        self.albumId = albumId
+        self.countryId = countryId
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encode(catalogNumber, forKey: .catalogNumber)
+        try container.encodeIfPresent(yearStart, forKey: .yearStart)
+        try container.encodeIfPresent(yearEnd, forKey: .yearEnd)
+        try container.encode(denomination, forKey: .denomination)
+        try container.encode(color, forKey: .color)
+        try container.encodeIfPresent(perforationGauge, forKey: .perforationGauge)
+        try container.encodeIfPresent(watermark, forKey: .watermark)
+        try container.encode(gumConditionRaw, forKey: .gumConditionRaw)
+        try container.encode(centeringGradeRaw, forKey: .centeringGradeRaw)
+        try container.encode(collectionStatusRaw, forKey: .collectionStatusRaw)
+        try container.encode(notes, forKey: .notes)
+        try container.encodeIfPresent(purchasePrice, forKey: .purchasePrice)
+        try container.encodeIfPresent(purchaseDate, forKey: .purchaseDate)
+        try container.encode(acquisitionSource, forKey: .acquisitionSource)
+        try container.encodeIfPresent(imageData, forKey: .imageData)
+        try container.encode(createdAt, forKey: .createdAt)
+        try container.encode(updatedAt, forKey: .updatedAt)
+        try container.encode(albumId, forKey: .albumId)
+        try container.encodeIfPresent(countryId, forKey: .countryId)
+    }
 }
 
 // MARK: - Backup Manager
@@ -158,7 +252,8 @@ class BackupManager {
             return StampBackup(
                 id: UUID().uuidString,
                 catalogNumber: stamp.catalogNumber,
-                yearOfIssue: stamp.yearOfIssue,
+                yearStart: stamp.yearStart,
+                yearEnd: stamp.yearEnd,
                 denomination: stamp.denomination,
                 color: stamp.color,
                 perforationGauge: stamp.perforationGauge,
@@ -307,7 +402,8 @@ class BackupManager {
 
             let stamp = Stamp(
                 catalogNumber: stampBackup.catalogNumber,
-                yearOfIssue: stampBackup.yearOfIssue,
+                yearStart: stampBackup.yearStart,
+                yearEnd: stampBackup.yearEnd,
                 denomination: stampBackup.denomination,
                 color: stampBackup.color,
                 perforationGauge: stampBackup.perforationGauge,

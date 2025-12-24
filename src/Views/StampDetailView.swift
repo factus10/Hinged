@@ -168,13 +168,27 @@ struct StampDetailView: View {
                 LabeledContent("Country", value: stamp.collectionCountry?.name ?? "—")
             }
 
-            LabeledContent("Year of Issue") {
-                TextField(
-                    "",
-                    value: $stamp.yearOfIssue,
-                    format: .number.grouping(.never)
-                )
-                .textFieldStyle(EditableFieldStyle())
+            LabeledContent("Year") {
+                HStack(spacing: 8) {
+                    TextField(
+                        "",
+                        value: $stamp.yearStart,
+                        format: .number.grouping(.never)
+                    )
+                    .textFieldStyle(EditableFieldStyle())
+                    .frame(width: 70)
+
+                    Text("to")
+                        .foregroundStyle(.secondary)
+
+                    TextField(
+                        "",
+                        value: $stamp.yearEnd,
+                        format: .number.grouping(.never)
+                    )
+                    .textFieldStyle(EditableFieldStyle())
+                    .frame(width: 70)
+                }
             }
 
             LabeledContent("Denomination") {
@@ -310,7 +324,8 @@ struct AddStampSheet: View {
     private let settings = UserSettings.shared
 
     @State private var catalogNumber = ""
-    @State private var yearOfIssue: Int?
+    @State private var yearStart: Int?
+    @State private var yearEnd: Int?
     @State private var denomination = ""
     @State private var color = ""
     @State private var perforationGauge: Decimal?
@@ -407,7 +422,11 @@ struct AddStampSheet: View {
                     LabeledContent("Country", value: selectedAlbum?.collection?.country?.name ?? "—")
                 }
 
-                TextField("Year", value: $yearOfIssue, format: .number.grouping(.never))
+                HStack(spacing: 4) {
+                    TextField("Year", value: $yearStart, format: .number.grouping(.never))
+                    Text("–").foregroundStyle(.secondary)
+                    TextField("End", value: $yearEnd, format: .number.grouping(.never))
+                }
 
                 HStack {
                     Picker("Gum", selection: $gumCondition) {
@@ -463,7 +482,11 @@ struct AddStampSheet: View {
                     LabeledContent("Country", value: selectedAlbum?.collection?.country?.name ?? "—")
                 }
 
-                TextField("Year of Issue", value: $yearOfIssue, format: .number.grouping(.never))
+                HStack(spacing: 4) {
+                    TextField("Year", value: $yearStart, format: .number.grouping(.never))
+                    Text("–").foregroundStyle(.secondary)
+                    TextField("End", value: $yearEnd, format: .number.grouping(.never))
+                }
                 TextField("Denomination", text: $denomination)
             }
 
@@ -547,7 +570,8 @@ struct AddStampSheet: View {
         guard let collectionStatus = collectionStatus else { return }
         let stamp = Stamp(
             catalogNumber: catalogNumber,
-            yearOfIssue: yearOfIssue,
+            yearStart: yearStart,
+            yearEnd: yearEnd,
             denomination: denomination,
             color: color,
             perforationGauge: perforationGauge,
@@ -570,7 +594,8 @@ struct AddStampSheet: View {
 
     private func resetForm() {
         catalogNumber = ""
-        yearOfIssue = nil
+        yearStart = nil
+        yearEnd = nil
         denomination = ""
         color = ""
         perforationGauge = nil

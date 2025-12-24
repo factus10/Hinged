@@ -8,7 +8,8 @@ final class Stamp {
     var catalogNumber: String
 
     // Basic stamp information
-    var yearOfIssue: Int?
+    var yearStart: Int?
+    var yearEnd: Int?
     var denomination: String
     var color: String
     var perforationGauge: Decimal?
@@ -81,11 +82,22 @@ final class Stamp {
         return "\(prefix) \(catalogNumber)"
     }
 
+    // MARK: - Year Helpers
+
+    /// Display string for year - shows single year or range
+    var displayYear: String {
+        guard let start = yearStart else { return "" }
+        if let end = yearEnd, end != start {
+            return "\(start)-\(end)"
+        }
+        return "\(start)"
+    }
+
     // MARK: - Sort Helpers
 
     /// Returns year for sorting, with nil years sorted to the end
     var yearForSort: Int {
-        yearOfIssue ?? Int.max
+        yearStart ?? Int.max
     }
 
     /// Returns country name for sorting, with nil countries sorted to the end
@@ -97,7 +109,8 @@ final class Stamp {
 
     init(
         catalogNumber: String,
-        yearOfIssue: Int? = nil,
+        yearStart: Int? = nil,
+        yearEnd: Int? = nil,
         denomination: String = "",
         color: String = "",
         perforationGauge: Decimal? = nil,
@@ -114,7 +127,8 @@ final class Stamp {
     ) {
         self.catalogNumber = catalogNumber
         self.country = nil  // Country comes from album.collection.country
-        self.yearOfIssue = yearOfIssue
+        self.yearStart = yearStart
+        self.yearEnd = yearEnd
         self.denomination = denomination
         self.color = color
         self.perforationGauge = perforationGauge
@@ -214,7 +228,7 @@ extension Stamp {
 
     static func yearRangePredicate(from startYear: Int, to endYear: Int) -> Predicate<Stamp> {
         #Predicate<Stamp> { stamp in
-            (stamp.yearOfIssue ?? 0) >= startYear && (stamp.yearOfIssue ?? 0) <= endYear
+            (stamp.yearStart ?? 0) >= startYear && (stamp.yearStart ?? 0) <= endYear
         }
     }
 }

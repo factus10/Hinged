@@ -391,7 +391,7 @@ struct StampsHelp: View {
                     Text("Identification").fontWeight(.semibold)
                     HelpBulletList(items: [
                         "Catalog Number: The primary identifier (e.g., '100', 'C5', 'O12')",
-                        "Year of Issue: When the stamp was issued",
+                        "Year: When the stamp was issued - can be a single year (e.g., '1958') or a range (e.g., '1958-1964') for stamps printed over multiple years",
                         "Denomination: Face value (e.g., '5c', '1M', '10/-')"
                     ])
                 }
@@ -534,7 +534,7 @@ struct FilteringHelp: View {
             HelpBulletList(items: [
                 "Catalog numbers",
                 "Country names",
-                "Year of issue"
+                "Year (including year ranges)"
             ])
 
             HelpSectionHeader(title: "Filter Bar")
@@ -659,7 +659,7 @@ struct ImportExportHelp: View {
             HelpParagraph(text: "Optional columns:")
 
             HelpBulletList(items: [
-                "Year (or yearOfIssue)",
+                "Year (or yearOfIssue) - single year or range like \"1958-1964\"",
                 "Denomination (or denomination)",
                 "Color (or color)",
                 "Status (or collectionStatus) - accepts: TRUE/owned, FALSE/wanted, notCollecting",

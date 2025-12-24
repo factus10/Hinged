@@ -21,8 +21,8 @@ struct GapAnalysisView: View {
 
         let countryStamps = allStamps.filter { stamp in
             stamp.collectionCountry?.persistentModelID == country.persistentModelID &&
-            (stamp.yearOfIssue ?? 0) >= startYear &&
-            (stamp.yearOfIssue ?? Int.max) <= endYear
+            (stamp.yearStart ?? 0) >= startYear &&
+            (stamp.yearStart ?? Int.max) <= endYear
         }
 
         let ownedStamps = countryStamps.filter { $0.collectionStatus == .owned }
@@ -43,7 +43,7 @@ struct GapAnalysisView: View {
         }
 
         // Group wanted stamps by year
-        let wantedByYear = Dictionary(grouping: wantedStamps) { $0.yearOfIssue ?? 0 }
+        let wantedByYear = Dictionary(grouping: wantedStamps) { $0.yearStart ?? 0 }
             .sorted { $0.key < $1.key }
 
         return GapAnalysisResults(
@@ -52,8 +52,8 @@ struct GapAnalysisView: View {
             endYear: endYear,
             totalOwned: ownedStamps.count,
             totalWanted: wantedStamps.count,
-            wantedStamps: wantedStamps.sorted { ($0.yearOfIssue ?? 0) < ($1.yearOfIssue ?? 0) },
-            ownedStamps: ownedStamps.sorted { ($0.yearOfIssue ?? 0) < ($1.yearOfIssue ?? 0) },
+            wantedStamps: wantedStamps.sorted { ($0.yearStart ?? 0) < ($1.yearStart ?? 0) },
+            ownedStamps: ownedStamps.sorted { ($0.yearStart ?? 0) < ($1.yearStart ?? 0) },
             wantedByYear: wantedByYear,
             potentialGaps: potentialGaps,
             completionPercentage: ownedStamps.isEmpty && wantedStamps.isEmpty ? 0 :
@@ -417,8 +417,8 @@ struct GapAnalysisStampRow: View {
                         .font(.system(.body, design: .monospaced))
                         .fontWeight(.medium)
 
-                    if let year = stamp.yearOfIssue {
-                        Text("(\(String(year)))")
+                    if !stamp.displayYear.isEmpty {
+                        Text("(\(stamp.displayYear))")
                             .foregroundStyle(.secondary)
                     }
                 }

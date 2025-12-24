@@ -76,6 +76,84 @@ struct StampCheckbox: View {
     }
 }
 
+// MARK: - Editable Table Cells
+
+struct EditableDenominationCell: View {
+    @Bindable var stamp: Stamp
+
+    var body: some View {
+        TextField("", text: $stamp.denomination)
+            .textFieldStyle(.plain)
+    }
+}
+
+struct EditableYearCell: View {
+    @Bindable var stamp: Stamp
+    @State private var yearText: String = ""
+
+    var body: some View {
+        TextField("", text: $yearText)
+            .textFieldStyle(.plain)
+            .frame(width: 80)
+            .onAppear {
+                yearText = stamp.displayYear
+            }
+            .onChange(of: stamp.yearStart) { _, _ in
+                yearText = stamp.displayYear
+            }
+            .onChange(of: stamp.yearEnd) { _, _ in
+                yearText = stamp.displayYear
+            }
+            .onSubmit {
+                parseAndSetYear()
+            }
+            .onChange(of: yearText) { _, newValue in
+                // Allow only digits and hyphen
+                let filtered = newValue.filter { $0.isNumber || $0 == "-" }
+                if filtered != newValue {
+                    yearText = filtered
+                }
+            }
+    }
+
+    private func parseAndSetYear() {
+        if yearText.isEmpty {
+            stamp.yearStart = nil
+            stamp.yearEnd = nil
+        } else if yearText.contains("-") {
+            let parts = yearText.split(separator: "-")
+            if parts.count == 2,
+               let start = Int(parts[0]),
+               let end = Int(parts[1]) {
+                stamp.yearStart = start
+                stamp.yearEnd = end
+            } else if parts.count == 1, let start = Int(parts[0]) {
+                stamp.yearStart = start
+                stamp.yearEnd = nil
+            }
+        } else if let year = Int(yearText) {
+            stamp.yearStart = year
+            stamp.yearEnd = nil
+        }
+    }
+}
+
+struct EditableStatusCell: View {
+    @Bindable var stamp: Stamp
+
+    var body: some View {
+        Picker("", selection: $stamp.collectionStatus) {
+            ForEach(CollectionStatus.allCases) { status in
+                Label(status.shortDisplayName, systemImage: status.systemImage)
+                    .tag(status)
+            }
+        }
+        .labelsHidden()
+        .pickerStyle(.menu)
+        .frame(width: 75)
+    }
+}
+
 // MARK: - Stamp Table View (isolated to prevent parent re-renders on selection)
 
 struct StampTableView: View {
@@ -158,7 +236,7 @@ struct StampTableView: View {
             .width(70)
 
             TableColumn("Denom", value: \.denomination) { stamp in
-                Text(stamp.denomination.isEmpty ? "—" : stamp.denomination)
+                EditableDenominationCell(stamp: stamp)
             }
             .width(min: 100)
 
@@ -168,14 +246,9 @@ struct StampTableView: View {
             .width(100)
 
             TableColumn("Year", value: \.yearForSort) { stamp in
-                if let year = stamp.yearOfIssue {
-                    Text(String(year))
-                } else {
-                    Text("—")
-                        .foregroundStyle(.secondary)
-                }
+                EditableYearCell(stamp: stamp)
             }
-            .width(50)
+            .width(80)
 
             TableColumn("Condition", value: \.conditionShorthand) { stamp in
                 Text(stamp.conditionShorthand)
@@ -184,13 +257,9 @@ struct StampTableView: View {
             .width(80)
 
             TableColumn("Status", value: \.collectionStatusRaw) { stamp in
-                HStack(spacing: 4) {
-                    Image(systemName: stamp.collectionStatus.systemImage)
-                        .foregroundStyle(statusColor(stamp.collectionStatus))
-                    Text(stamp.collectionStatus.shortDisplayName)
-                }
+                EditableStatusCell(stamp: stamp)
             }
-            .width(70)
+            .width(85)
         }
     }
 
@@ -208,19 +277,14 @@ struct StampTableView: View {
             .width(70)
 
             TableColumn("Denom", value: \.denomination) { stamp in
-                Text(stamp.denomination.isEmpty ? "—" : stamp.denomination)
+                EditableDenominationCell(stamp: stamp)
             }
             .width(min: 100)
 
             TableColumn("Year", value: \.yearForSort) { stamp in
-                if let year = stamp.yearOfIssue {
-                    Text(String(year))
-                } else {
-                    Text("—")
-                        .foregroundStyle(.secondary)
-                }
+                EditableYearCell(stamp: stamp)
             }
-            .width(50)
+            .width(80)
 
             TableColumn("Condition", value: \.conditionShorthand) { stamp in
                 Text(stamp.conditionShorthand)
@@ -229,13 +293,9 @@ struct StampTableView: View {
             .width(80)
 
             TableColumn("Status", value: \.collectionStatusRaw) { stamp in
-                HStack(spacing: 4) {
-                    Image(systemName: stamp.collectionStatus.systemImage)
-                        .foregroundStyle(statusColor(stamp.collectionStatus))
-                    Text(stamp.collectionStatus.shortDisplayName)
-                }
+                EditableStatusCell(stamp: stamp)
             }
-            .width(70)
+            .width(85)
         }
     }
 
@@ -392,7 +452,7 @@ struct StampListView: View {
             stamps = stamps.filter { stamp in
                 stamp.catalogNumber.lowercased().contains(search) ||
                 stamp.collectionCountry?.name.lowercased().contains(search) == true ||
-                (stamp.yearOfIssue.map { String($0).contains(search) } ?? false)
+                stamp.displayYear.contains(search)
             }
         }
 
@@ -418,10 +478,10 @@ struct StampListView: View {
 
         // Apply year range filter
         if let startYear = filterState.yearStart {
-            stamps = stamps.filter { ($0.yearOfIssue ?? 0) >= startYear }
+            stamps = stamps.filter { ($0.yearStart ?? 0) >= startYear }
         }
         if let endYear = filterState.yearEnd {
-            stamps = stamps.filter { ($0.yearOfIssue ?? Int.max) <= endYear }
+            stamps = stamps.filter { ($0.yearStart ?? Int.max) <= endYear }
         }
 
         // Apply catalog number range filter
@@ -707,7 +767,8 @@ struct StampListView: View {
             }
 
             // Parse field values
-            let yearOfIssue = yearIdx.flatMap { $0 < fields.count ? Int(fields[$0]) : nil }
+            let yearValue = yearIdx.flatMap { $0 < fields.count ? fields[$0] : nil } ?? ""
+            let (yearStart, yearEnd) = parseYearRange(yearValue)
             let denomination = denomIdx.flatMap { $0 < fields.count ? fields[$0] : nil } ?? ""
             let color = colorIdx.flatMap { $0 < fields.count ? fields[$0] : nil } ?? ""
             let gumCondition = gumIdx.flatMap { $0 < fields.count ? GumCondition(rawValue: fields[$0]) : nil } ?? .unspecified
@@ -722,7 +783,8 @@ struct StampListView: View {
                     continue
                 case .update:
                     // Update existing stamp with imported values
-                    existing.yearOfIssue = yearOfIssue
+                    existing.yearStart = yearStart
+                    existing.yearEnd = yearEnd
                     existing.denomination = denomination
                     existing.color = color
                     existing.gumCondition = gumCondition
@@ -739,7 +801,8 @@ struct StampListView: View {
 
             let stamp = Stamp(
                 catalogNumber: catalogNumber,
-                yearOfIssue: yearOfIssue,
+                yearStart: yearStart,
+                yearEnd: yearEnd,
                 denomination: denomination,
                 color: color,
                 gumCondition: gumCondition,
@@ -780,6 +843,27 @@ struct StampListView: View {
         }
         fields.append(current.trimmingCharacters(in: .whitespaces))
         return fields
+    }
+
+    private func parseYearRange(_ value: String) -> (Int?, Int?) {
+        let trimmed = value.trimmingCharacters(in: .whitespaces)
+        if trimmed.isEmpty {
+            return (nil, nil)
+        }
+        if trimmed.contains("-") {
+            let parts = trimmed.split(separator: "-")
+            if parts.count == 2,
+               let start = Int(parts[0].trimmingCharacters(in: .whitespaces)),
+               let end = Int(parts[1].trimmingCharacters(in: .whitespaces)) {
+                return (start, end)
+            } else if parts.count == 1, let start = Int(parts[0].trimmingCharacters(in: .whitespaces)) {
+                return (start, nil)
+            }
+        }
+        if let year = Int(trimmed) {
+            return (year, nil)
+        }
+        return (nil, nil)
     }
 
     // MARK: - Filter Bar
@@ -1199,7 +1283,7 @@ struct StampCSVDocument: FileDocument {
             let fields = [
                 escapeCSV(stamp.catalogNumber),
                 escapeCSV(stamp.collectionCountry?.name ?? ""),
-                stamp.yearOfIssue.map { String($0) } ?? "",
+                stamp.displayYear,
                 escapeCSV(stamp.denomination),
                 escapeCSV(stamp.color),
                 stamp.gumCondition.rawValue,
