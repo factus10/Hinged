@@ -17,3 +17,6 @@ DerivedData/
 # Finder
 .Spotlight-V100
 .Trashes
+
+# Claude Code local settings
+.claude/
