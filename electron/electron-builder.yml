@@ -1,6 +1,9 @@
 appId: com.factus10.hinged
 productName: Hinged
 copyright: Copyright © 2026 David Anderson
+# Disable electron-builder's built-in publisher; the GitHub Release is
+# created by softprops/action-gh-release in .github/workflows/electron-build.yml.
+publish: null
 directories:
   output: release
   buildResources: resources
@@ -30,6 +33,8 @@ win:
       arch: [x64]
 linux:
   category: Office
+  # Required by the .deb format; "Name <email>" is the Debian convention.
+  maintainer: David Anderson <factus10@users.noreply.github.com>
   target:
     - target: AppImage
       arch: [x64]
