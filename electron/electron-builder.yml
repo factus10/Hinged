@@ -24,17 +24,23 @@ mac:
   category: public.app-category.productivity
   target:
     - target: dmg
-      arch: [x64, arm64]
-  hardenedRuntime: true
+      arch: universal
+  # Unsigned. We can't ad-hoc sign reliably on macOS Sequoia because of
+  # SIP-protected com.apple.provenance attributes on Electron's nested
+  # helper apps. Real Developer ID signing requires a paid Apple account.
+  # Users on macOS need to run `xattr -cr /Applications/Hinged.app` once
+  # after install — see README for instructions.
+  hardenedRuntime: false
   gatekeeperAssess: false
+  identity: null
 win:
   target:
     - target: nsis
       arch: [x64]
 linux:
   category: Office
-  # Required by the .deb format; "Name <email>" is the Debian convention.
-  maintainer: David Anderson <factus10@users.noreply.github.com>
+  # Required by the .deb format.
+  maintainer: factus10@gmail.com
   target:
     - target: AppImage
       arch: [x64]

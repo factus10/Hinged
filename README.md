@@ -13,14 +13,46 @@ Grab the latest release for your platform from the
 
 | Platform | File |
 | --- | --- |
-| macOS  | `Hinged-x.y.z-arm64.dmg` (Apple Silicon) or `Hinged-x.y.z.dmg` (Intel) |
+| macOS  | `Hinged-x.y.z-universal.dmg` (works on Apple Silicon and Intel) |
 | Windows | `Hinged Setup x.y.z.exe` |
 | Linux | `Hinged-x.y.z.AppImage` or `hinged_x.y.z_amd64.deb` |
 
-The binaries are unsigned, so you'll see a warning the first time you run
-the app. On macOS, right-click the app and pick **Open** from the context
-menu the first time. On Windows, click **More info → Run anyway** in the
-SmartScreen dialog.
+### Installing on macOS
+
+The binaries are unsigned (no Apple Developer ID), so the first time you
+launch Hinged macOS will warn that it can't verify the developer.
+
+1. Open the downloaded `.dmg` and drag **Hinged.app** to your Applications folder
+2. **Right-click** (or Control-click) **Hinged.app** in Applications and pick **Open**
+3. macOS will show *"Apple cannot verify the developer of Hinged"* —
+   click **Open** in that dialog
+4. Hinged launches. You only need to do this once; subsequent launches
+   work normally
+
+If you skipped the right-click and just double-clicked, you may instead
+see *"Hinged is damaged and can't be opened"*. The app is not actually
+damaged — that message is macOS Gatekeeper refusing to run an
+unrecognized download. The fix is a one-time Terminal command to remove
+the "downloaded from the internet" quarantine flag:
+
+```bash
+xattr -cr /Applications/Hinged.app
+```
+
+After running that, double-click as normal.
+
+### Installing on Windows
+
+Run the `.exe` installer. Windows SmartScreen will warn that the
+publisher is unknown. Click **More info → Run anyway** to proceed.
+
+### Installing on Linux
+
+Either:
+
+- Make the `.AppImage` executable (`chmod +x Hinged-*.AppImage`) and
+  double-click to run, or
+- Install the `.deb` with `sudo apt install ./hinged_*.deb`
 
 ## Features
 
