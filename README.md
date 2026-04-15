@@ -1,240 +1,98 @@
 # Hinged
 
-A macOS stamp collection management application built with SwiftUI and SwiftData.
+A free, cross-platform stamp collection manager for macOS, Windows, and Linux.
+
+Built with Electron, React, TypeScript, and SQLite. Designed to make life
+easier for stamp collectors — new and experienced — without locking your
+data into a proprietary format.
 
 ## Download
 
-Download the latest release from the [Releases page](https://github.com/factus10/Hinged/releases).
+Grab the latest release for your platform from the
+[Releases page](https://github.com/factus10/Hinged/releases).
 
-### Installation
+| Platform | File |
+| --- | --- |
+| macOS  | `Hinged-x.y.z-arm64.dmg` (Apple Silicon) or `Hinged-x.y.z.dmg` (Intel) |
+| Windows | `Hinged Setup x.y.z.exe` |
+| Linux | `Hinged-x.y.z.AppImage` or `hinged_x.y.z_amd64.deb` |
 
-1. Download `Hinged-x.x-macOS.zip` from the latest release
-2. Unzip the file
-3. Move `Hinged.app` to your Applications folder
-4. **First launch**: Right-click (or Control-click) on Hinged.app and select "Open"
-   - You'll see a warning that the app is from an unidentified developer
-   - Click "Open" to confirm
-   - This is only required the first time you run the app
-
-Note: The app is signed but not notarized with Apple. This is why macOS shows a warning on first launch.
-
-## Overview
-
-Hinged helps philatelists organize and track their stamp collections. The app supports multiple collections with different catalog systems, tracks stamp conditions and acquisition details, and provides tools for analyzing collection gaps.
-
-![Hinged Screenshot](images/hinged.png)
-
-## Requirements
-
-- macOS 14.0 or later
-- Xcode 15.0 or later (for building from source)
+The binaries are unsigned, so you'll see a warning the first time you run
+the app. On macOS, right-click the app and pick **Open** from the context
+menu the first time. On Windows, click **More info → Run anyway** in the
+SmartScreen dialog.
 
 ## Features
 
-### Collection Organization
+- **Three-pane layout** — collections / albums tree on the left, filterable
+  stamp list in the middle, full editing form on the right.
+- **Catalog systems** — Scott, Stanley Gibbons, Michel, Yvert et Tellier,
+  Sakura, Facit, plus your own custom catalogs.
+- **Country prefixes** — display catalog numbers with the right per-country
+  prefix automatically (e.g. `US 1` instead of just `1`).
+- **Smart collections** — All Owned, Want List, Not Collecting, Recent
+  Additions, Trash.
+- **Bulk editing** — multi-select with ⌘/Ctrl+click, ⇧+click, and ⌘A.
+  Right-click for status / condition / move-to-album / delete in one step.
+- **Quick add** — type a catalog number, year, denomination, hit Enter.
+  Stamps fly into your album as fast as you can type.
+- **Keyboard navigation** — arrow keys move through the stamp list, Enter
+  jumps to edit, Delete trashes, Escape clears.
+- **Trash with restore** — deleted stamps go to a Trash smart collection
+  for safekeeping until you empty it.
+- **Auto-backup on launch** — point Hinged at a folder and it writes a
+  timestamped backup every time you start the app, keeping the most
+  recent N.
+- **Image attachments** — drag and drop or pick an image for each stamp.
+- **Gap analysis** — pick a country and year range, see your completion
+  percentage and the catalog-number gaps in your collection.
+- **CSV import & export** — flexible CSV in/out so you can move data
+  between Hinged and any spreadsheet.
+- **Backup & restore** — `.hinged` JSON backup files are bidirectionally
+  compatible with the original macOS Swift app.
+- **Native menus and shortcuts** — ⌘⇧N new collection, ⌘⌥N new album,
+  ⌘⇧E export backup, ⌘, settings, ⌘? help.
 
-- **Collections**: Top-level organizational units that define the catalog system (Scott, Michel, Stanley Gibbons, Yvert, Sakura, Facit, or custom catalogs) and country scope
-- **Albums**: Subdivisions within collections for organizing stamps by theme, year range, or any preferred grouping
-- **Smart Collections**: Automatic filters for viewing stamps across all collections:
-  - All Owned
-  - Want List
-  - Not Collecting
-  - Recent Additions (last 30 days)
+## Where your data lives
 
-### Stamp Tracking
+| Platform | Path |
+| --- | --- |
+| macOS  | `~/Library/Application Support/Hinged/` |
+| Windows | `%APPDATA%\Hinged\` |
+| Linux  | `~/.config/Hinged/` |
 
-- Catalog number with natural sorting (handles prefixes like C, O, B for airmail, officials, etc.)
-- Year of issue (single year or range, e.g., "1958" or "1958-1964")
-- Denomination
-- Color
-- Perforation gauge
-- Watermark
-- Gum condition (MNH, MH, OG, NG, Used, etc.)
-- Centering grade (Superb, XF, VF, F-VF, Fine, VG, Good)
-- Collection status (Owned, Wanted, Not Collecting)
-- Purchase price and date
-- Acquisition source
-- Notes
-- Image attachment
-
-### Country Support
-
-- Country-specific collections with automatic catalog prefixes
-- Worldwide collections allowing stamps from any country
-- Customizable catalog prefixes per country and catalog system
-
-### Import/Export
-
-- CSV import for bulk stamp entry
-- CSV export for backup or external analysis
-- Flexible column mapping supporting multiple header formats
-
-### Gap Analysis
-
-- Analyze collection completeness by country and year range
-- Identify potential missing catalog numbers
-- View completion percentage
-- Filter by owned or wanted stamps
-
-### Bulk Actions
-
-- Select multiple stamps using checkboxes in the stamp list
-- Select all visible stamps with the header checkbox
-- Bulk status change (set all selected to Owned, Wanted, or Not Collecting)
-- Bulk delete with confirmation
-
-### Additional Features
-
-- Quick Add Mode for rapid batch entry
-- Populate Number Range tool for creating placeholder entries
-- Sortable columns with natural catalog number sorting
-- Comprehensive filtering by country, condition, grade, status, year range, and catalog number range
-- Image storage for stamp scans or photos
-- In-app help system (Help menu or Cmd+?)
-
-## Getting Started
-
-### Creating Your First Collection
-
-1. Click the **+** button in the sidebar
-2. Select **New Collection...**
-3. Enter a name for your collection
-4. Choose a catalog system (Scott, Michel, Stanley Gibbons, Yvert, Sakura, or Facit)
-5. Select a country, or leave as "Worldwide" for a multi-country collection
-6. Click **Create**
-
-### Adding Albums
-
-Albums help you organize stamps within a collection (e.g., by year range, commemoratives vs. definitives).
-
-1. Click the **+** button in the sidebar
-2. Select **New Album in...** and choose the parent collection
-3. Enter an album name and optional description
-4. Click **Add**
-
-Alternatively, right-click a collection and select **Add Album...**
-
-### Adding Stamps
-
-#### Single Stamp Entry
-
-1. Select an album in the sidebar
-2. Click the **+** button in the toolbar
-3. Fill in the stamp details
-4. Select a status (Owned, Wanted, or Not Collecting)
-5. Click **Add**
-
-#### Quick Add Mode
-
-For faster batch entry:
-
-1. Enable Quick Add Mode by clicking the lightning bolt icon in the toolbar
-2. Click **+** to open the simplified entry form
-3. Enter essential details (catalog number, year, condition, status)
-4. Click **Add & Next** to save and immediately start the next entry
-5. Disable Quick Add Mode when finished
-
-#### Populate Number Range
-
-To create placeholder entries for a range of catalog numbers:
-
-1. Select an album
-2. Click the **...** menu in the toolbar
-3. Select **Populate Number Range...**
-4. Enter an optional prefix (e.g., "C" for airmail)
-5. Enter the start and end numbers
-6. Select the default status for new entries
-7. Click **Create**
-
-#### CSV Import
-
-1. Select the target album
-2. Click the **...** menu in the toolbar
-3. Select **Import CSV...**
-4. Choose your CSV file
-
-Expected CSV format:
-```
-Catalog Number,Status,Denomination,Year,Color,Gum Condition,Centering Grade,Notes
-1,wanted,5c Franklin,1847,brown,mintNeverHinged,veryFine,First US stamp
-300-300D,owned,1c-10c Pan-American,1901,various,mintHinged,fine,Complete set
-```
-
-The Year column accepts single years (e.g., "1958") or ranges (e.g., "1958-1964").
-
-The Status column accepts:
-- `TRUE`, `YES`, `1`, `owned` for owned stamps
-- `FALSE`, `NO`, `0`, `wanted` for wanted stamps
-- `notCollecting`, `skip` for stamps you're not collecting
-
-### Editing Stamps
-
-Click on any stamp in the list to view and edit its details in the right panel. Changes are saved automatically.
-
-### Settings
-
-Access Settings via the menu bar (Hinged → Settings) or press **Cmd+,** to configure:
-
-#### Defaults Tab
-- **Default Catalog System**: Choose the default catalog for new collections (built-in or custom)
-- **Default Collection Status**: Set the default status for new stamps (Owned, Wanted, or Not Collecting)
-- **Default Gum Condition**: Optionally pre-fill gum condition for new stamps
-- **Default Centering Grade**: Optionally pre-fill centering grade for new stamps
-- **Currency Symbol**: Set the symbol used when displaying purchase prices
-
-#### Catalogs Tab
-- View built-in catalog systems (Scott, Michel, Stanley Gibbons, etc.)
-- Create custom catalogs for specialty collecting (revenues, cinderellas, local posts, etc.)
-- Custom catalogs can be set as the default for new collections
-
-#### Countries Tab
-- Add, edit, and delete countries
-- Set catalog prefixes for each country (e.g., "US" for United States in Scott catalog)
-- Hinged comes pre-populated with countries worldwide
-
-### Gap Analysis
-
-Click the chart icon in the toolbar to analyze your collection:
-
-1. Select a country
-2. Set the year range
-3. Click **Analyze Collection**
-4. Review the summary showing owned/wanted counts and completion percentage
-5. Browse potential gaps in catalog number sequences
-6. View wanted stamps grouped by year
-
-## Keyboard Shortcuts
-
-- **Cmd+Shift+N**: Add new collection
-- **Cmd+Option+N**: Add new album (when collection selected)
-- **Cmd+Shift+E**: Edit selected collection
-- **Cmd+Shift+R**: Rename selected album
-- **Cmd+Delete**: Delete selected album
-- **Cmd+,**: Open Settings
-- **Cmd+?**: Open help
-- **Cmd+Q**: Quit application
-
-## Data Storage
-
-Hinged stores all data in a user-accessible location:
+Inside that folder:
 
 ```
-~/Documents/Hinged/
-├── Hinged.store      (main database)
-└── Images/           (stamp images)
+Hinged/
+├── hinged.db    SQLite database
+└── Images/      Stamp image files
 ```
 
-This makes it easy to:
-- **Back up**: Copy the entire folder, or use File → Export → Export Full Backup
-- **Migrate**: Export a backup and import it on another Mac
-- **Access images**: Stamp images are stored as individual files in the Images subfolder
+The database file is the only thing that matters for your collection. Copy
+it somewhere safe and you have a full snapshot. Or use **File → Export
+Backup** for a portable JSON file.
 
-## Building from Source
+## Building from source
 
-1. Clone the repository
-2. Open `Hinged.xcodeproj` in Xcode
-3. Build and run (Cmd+R)
+Requires Node.js 20+ and npm.
+
+```bash
+git clone https://github.com/factus10/Hinged.git
+cd Hinged/electron
+npm install
+npm run dev
+```
+
+To build distributables locally:
+
+```bash
+npm run dist          # current platform
+npm run dist:mac      # macOS .dmg
+npm run dist:win      # Windows .exe
+npm run dist:linux    # Linux .AppImage + .deb
+```
 
 ## License
 
-This project is licensed under the GNU General Public License v3.0 - see the [LICENSE](LICENSE) file for details.
+MIT — see [LICENSE](LICENSE).

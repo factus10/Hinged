@@ -1,13 +1,3 @@
-# Build artifacts
-build/
-*.zip
-
-# Xcode
-xcuserdata/
-*.xcscmblueprint
-*.xccheckout
-DerivedData/
-
 # macOS
 .DS_Store
 .AppleDouble

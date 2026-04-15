@@ -1,114 +1,188 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+Project-level guidance for Claude Code working in this repository.
 
-## Project Overview
+## What this is
 
-Hinged is a macOS stamp collection management app built with Swift 5.0, SwiftUI, and SwiftData. It targets macOS 14.0+ and requires Xcode 15.0+ to build.
+Hinged is a free, cross-platform stamp collection manager for macOS,
+Windows, and Linux, built with Electron + React + TypeScript +
+better-sqlite3. The original native macOS Swift app was rewritten as an
+Electron application and the Swift code has been retired.
 
-## Build Commands
+## Repo layout
+
+```
+Hinged/
+├── electron/                 The application
+│   ├── package.json
+│   ├── electron.vite.config.ts
+│   ├── electron-builder.yml
+│   ├── resources/
+│   │   └── icon.png          1024+ source for all platform icons
+│   ├── scripts/
+│   │   └── rebuild-native.mjs   Swap better-sqlite3 between Node + Electron ABI
+│   └── src/
+│       ├── main/             Electron main process (Node)
+│       │   ├── index.ts          Entry: window, menu, IPC, auto-backup
+│       │   ├── menu.ts           Native application menu
+│       │   ├── ipc.ts            All ipcMain.handle handlers
+│       │   ├── backup.ts         .hinged JSON import/export
+│       │   ├── auto-backup.ts    Auto-backup on launch + rotation
+│       │   ├── csv.ts            CSV parser/generator (matches Swift app)
+│       │   ├── images.ts         Image storage in userData/Images/
+│       │   └── db/
+│       │       ├── connection.ts     Open + apply schema + migrations
+│       │       ├── schema.sql        Idempotent CREATE statements
+│       │       ├── seed.ts           Default countries seed
+│       │       └── repositories/     One file per entity (CRUD + helpers)
+│       ├── preload/
+│       │   └── index.ts          Typed contextBridge API: window.hinged.*
+│       ├── shared/               Imported by main + renderer
+│       │   ├── types.ts          Domain types
+│       │   ├── enums.ts          Catalog system, gum, centering, status
+│       │   ├── display.ts        Display name / shorthand lookups
+│       │   ├── ipc-contract.ts   Channel name constants
+│       │   └── backup-schema.ts  Zod schema for .hinged files
+│       └── renderer/             React UI
+│           ├── App.tsx           Three-pane shell + dialog hosts
+│           ├── main.tsx          React + QueryClient bootstrap
+│           ├── styles.css        All styles (no Tailwind, no shadcn)
+│           ├── components/
+│           │   └── primitives.tsx    Button, Input, Select, Field, Dialog
+│           ├── lib/
+│           │   ├── query.ts          TanStack Query client + key constants
+│           │   └── api.ts            Query/mutation hooks for every entity
+│           ├── state/
+│           │   ├── selection.ts      Sidebar selection + multi-select stamps
+│           │   └── dialogs.ts        Which modal is open
+│           └── features/             Feature folders
+│               ├── sidebar/
+│               ├── stamp-list/
+│               ├── stamp-detail/
+│               ├── countries/
+│               ├── gap-analysis/
+│               ├── settings/
+│               └── help/
+├── .github/
+│   └── workflows/
+│       └── electron-build.yml   3-platform build matrix + release on tag
+├── scripts/
+│   └── release.sh               Local helper for cutting tagged releases
+└── LICENSE
+```
+
+## Architecture notes
+
+**Three processes:** Electron splits into main (Node), preload (sandboxed
+context bridge), and renderer (React in a Chromium window). The renderer
+**never** touches the database or filesystem directly — every operation
+goes through `window.hinged.*` which is defined in
+[preload/index.ts](electron/src/preload/index.ts) and handled in
+[main/ipc.ts](electron/src/main/ipc.ts).
+
+**Database:** better-sqlite3 (synchronous), opened once at startup. All
+queries go through repository modules in
+[main/db/repositories/](electron/src/main/db/repositories/). Schema is
+idempotent (`CREATE TABLE IF NOT EXISTS`) plus a small `runMigrations`
+function in `connection.ts` for additive column changes (currently just
+`stamps.deleted_at` for the trash feature).
+
+**State:** TanStack Query owns server state (everything loaded via IPC).
+Zustand owns ephemeral UI state (selection, which dialog is open). React
+local state owns in-progress form drafts.
+
+**Native modules + Electron ABI:** `better-sqlite3` is native and must be
+compiled against the runtime that loads it. Electron and system Node have
+different ABI versions, so the `pretest`, `posttest`, and `predev` npm
+hooks in `electron/package.json` swap the binary between the two via
+`scripts/rebuild-native.mjs`. If you ever see a `NODE_MODULE_VERSION`
+error, run `npm run rebuild:electron` or `npm run rebuild:node` manually.
+
+**Preload sandbox:** Sandboxed renderers in Electron require CommonJS
+preload scripts even when the file extension is `.mjs`. The
+`electron.vite.config.ts` preload section forces `format: 'cjs'` and
+`entryFileNames: '[name].js'` because of this. Don't change it.
+
+**React deduping:** The renderer config sets `resolve.dedupe: ['react',
+'react-dom']` and pre-bundles them via `optimizeDeps.include`. Without
+this, vite's dep pre-bundler creates two pre-bundled chunks each
+containing their own React copy and every hook call throws "Invalid hook
+call".
+
+## Data storage
+
+User data lives in Electron's `userData` path:
+
+| Platform | Path |
+| --- | --- |
+| macOS  | `~/Library/Application Support/Hinged/` |
+| Windows | `%APPDATA%\Hinged\` |
+| Linux  | `~/.config/Hinged/` |
+
+Inside: `hinged.db` (SQLite WAL mode) and `Images/` (one file per stamp,
+UUID-named).
+
+**Important**: dev (`npm run dev`) uses a *lowercase* `hinged/` userData
+folder because the package.json `name` is lowercase, while packaged
+builds use the capitalized `Hinged/` from `productName`. They're
+intentionally split so dev experiments don't touch real data.
+
+## Common commands
 
 ```bash
-# Open project in Xcode
-open Hinged.xcodeproj
+# Develop
+cd electron
+npm install         # postinstall rebuilds better-sqlite3 for Electron
+npm run dev         # launches the app with HMR
 
-# Build from command line
-xcodebuild -project Hinged.xcodeproj -scheme Hinged build
+# Test
+npm test            # vitest run, currently covers backup round-trip
+npm run typecheck   # both tsconfig.node.json and tsconfig.web.json
 
-# Build for release
-xcodebuild -project Hinged.xcodeproj -scheme Hinged -configuration Release build
+# Build / package
+npm run build       # produce out/ bundles only
+npm run pack        # build + electron-builder --dir (no installer)
+npm run dist:mac    # build a .dmg
+npm run dist:win    # build a Windows installer
+npm run dist:linux  # build .AppImage + .deb
+
+# Release
+./scripts/release.sh 0.2.0
+# Bumps electron/package.json, commits, tags, pushes; CI builds all three
+# platforms and publishes a GitHub Release.
 ```
 
-Build in Xcode: Cmd+B to build, Cmd+R to run.
+## Backup file format
 
-No external dependencies - uses only Apple frameworks (SwiftUI, SwiftData, Foundation, AppKit, UniformTypeIdentifiers).
+`.hinged` files are JSON, version 1, structurally identical to the
+original Swift app's format (sorted keys, ISO-8601 dates without
+fractional seconds, base64-embedded image data). The Zod schema in
+[shared/backup-schema.ts](electron/src/shared/backup-schema.ts) is
+the source of truth and accepts the legacy `yearOfIssue` field from
+older Swift backups.
 
-No test framework is currently configured.
+## Testing notes
 
-## Architecture
+Only `backup.test.ts` exists right now. It covers:
 
-### Data Model (SwiftData)
+1. Full round-trip: populate DB → export → re-parse → restore into fresh
+   DB → verify counts and field values.
+2. Legacy `yearOfIssue` field is mapped to `yearStart`.
+3. Merge mode dedupes countries by case-insensitive name.
 
-```
-Collection ──┬── Country (optional)
-             └── Albums (1:many, cascade delete)
-                    └── Stamps (1:many, cascade delete)
-                           └── Country (optional, direct relationship)
-```
+The test file inlines `schema.sql` via `readFileSync` because vitest
+doesn't go through electron-vite's `?raw` import resolution. If the
+schema changes, the test still works as long as `schema.sql` is on disk.
 
-Core models in `src/Models/`:
-- **Country.swift** - Countries with catalog prefixes per system
-- **Collection.swift** - Top-level units defining catalog system (Scott, Michel, etc.)
-- **Album.swift** - Subdivisions within collections
-- **Stamp.swift** - Individual stamp records with condition, status, images
-- **Enums.swift** - CatalogSystem, GumCondition, CenteringGrade, CollectionStatus
-- **Settings.swift** - User preferences and CustomCatalog model for user-defined catalog systems
+## Things to be careful about
 
-Supporting models:
-- **BackupRestore.swift** - Backup/restore functionality with version tracking (.hinged files)
-- **ImageStorage.swift** - Image file storage management
-- **NavigationSelection.swift** - Navigation state management
-- **SchemaVersioning.swift** - SwiftData migration infrastructure
-- **FocusedValues.swift** - Menu/command communication via focused values
-
-### UI Architecture (Three-Column NavigationSplitView)
-
-Entry point: `src/StampCollectionApp.swift` → `ContentView.swift`
-
-Main views in `src/Views/`:
-- **ContentView.swift** - Main NavigationSplitView wrapper
-- **SidebarView.swift** - Left column: collections/albums tree + smart collections
-- **StampListView.swift** - Center column: filterable stamp table with search, CSV import/export
-- **StampDetailView.swift** - Right column: stamp editing form
-
-Additional views:
-- **CountryManagementView.swift** - Manage country-specific catalog prefixes
-- **GapAnalysisView.swift** - Analyze collection completeness
-- **HelpView.swift** - Built-in help documentation
-- **SettingsView.swift** - User preferences UI
-- **Components/FlowLayout.swift** - Reusable flow layout component
-
-### Key Patterns
-
-**SwiftData Integration**:
-- Use `@Query` for data fetching
-- Use `@Bindable` for model editing
-- Enum values stored as raw strings with computed properties for type safety
-
-**Menu/Command Communication**:
-- FocusedValues (`src/Models/FocusedValues.swift`) enable menu items to access current selection context
-- Protocols: AlbumActions, CollectionActions, FileActions
-
-**Catalog System**:
-- 7 built-in catalog systems (Scott, Michel, Stanley Gibbons, etc.)
-- CustomCatalog model allows user-defined catalog systems
-- UnifiedCatalogSystem enum handles both built-in and custom catalogs
-
-**Cross-Platform Structure**:
-- Code organized for eventual iOS/iPadOS support
-- Uses `NavigationSplitView` and adaptive SwiftUI patterns
-- Platform-specific code (NSImage) is isolated
-
-### Data Storage
-
-User data is stored at:
-```
-~/Documents/Hinged/
-├── Hinged.store      (SwiftData database)
-└── Images/           (stamp image files)
-```
-
-Backup files use `.hinged` extension (JSON format, UTType: `com.factus10.hinged.backup`).
-
-## Command Accessibility Rules
-
-Per DEVELOPMENT.md, all features must be accessible via:
-1. Menu bar command with keyboard shortcut OR toolbar button OR inline button
-2. Context menus are secondary (must also have primary access method)
-
-Key keyboard shortcuts:
-- ⌘? - Help
-- ⌘, - Settings
-- ⌘⇧N - New Collection
-- ⌘⌥N - New Album
-- ⌘⇧E - Export Backup
+- **Native module rebuilds.** Don't edit `package.json` scripts that
+  involve `rebuild:node` / `rebuild:electron` without understanding the
+  ABI dance.
+- **Schema migrations.** Use `runMigrations` in `connection.ts`. Don't
+  put `CREATE INDEX ON new_column` in `schema.sql` — `CREATE TABLE IF
+  NOT EXISTS` is a no-op on existing DBs and the index would fail.
+- **Backup compatibility.** Don't change the `.hinged` JSON format. Any
+  shipped change has to bump `BACKUP_VERSION` and stay
+  forward-compatible with version 1.
+- **Sandbox preload.** Stays CJS. See above.
