@@ -113,9 +113,15 @@ if [[ "$CURRENT_BRANCH" != "main" ]]; then
   die "Not on main branch (on '$CURRENT_BRANCH'). Releases must be cut from main."
 fi
 
-if ! git diff --quiet || ! git diff --cached --quiet; then
-  red "Working tree is dirty. Commit or stash changes first:"
-  git status --short >&2
+# Only block on uncommitted changes inside the directories that affect
+# the build (electron/ source + the workflow + this script). Unrelated
+# scratch changes elsewhere in the working tree are fine.
+RELEASE_PATHS=(electron .github/workflows scripts)
+if ! git diff --quiet -- "${RELEASE_PATHS[@]}" \
+   || ! git diff --cached --quiet -- "${RELEASE_PATHS[@]}"; then
+  red "Working tree has uncommitted changes in release-relevant paths:"
+  git status --short -- "${RELEASE_PATHS[@]}" >&2
+  red "Commit or stash them first."
   exit 1
 fi
 
