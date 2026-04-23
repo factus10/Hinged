@@ -19,27 +19,9 @@ Grab the latest release for your platform from the
 
 ### Installing on macOS
 
-The binaries are unsigned (no Apple Developer ID), so the first time you
-launch Hinged macOS will warn that it can't verify the developer.
-
-1. Open the downloaded `.dmg` and drag **Hinged.app** to your Applications folder
-2. **Right-click** (or Control-click) **Hinged.app** in Applications and pick **Open**
-3. macOS will show *"Apple cannot verify the developer of Hinged"* —
-   click **Open** in that dialog
-4. Hinged launches. You only need to do this once; subsequent launches
-   work normally
-
-If you skipped the right-click and just double-clicked, you may instead
-see *"Hinged is damaged and can't be opened"*. The app is not actually
-damaged — that message is macOS Gatekeeper refusing to run an
-unrecognized download. The fix is a one-time Terminal command to remove
-the "downloaded from the internet" quarantine flag:
-
-```bash
-xattr -cr /Applications/Hinged.app
-```
-
-After running that, double-click as normal.
+Open the downloaded `.dmg` and drag **Hinged.app** to your Applications
+folder. Double-click to launch — Hinged is signed with an Apple Developer
+ID and notarized, so macOS will open it without warnings.
 
 ### Installing on Windows
 

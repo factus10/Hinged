@@ -25,14 +25,11 @@ mac:
   target:
     - target: dmg
       arch: universal
-  # Unsigned. We can't ad-hoc sign reliably on macOS Sequoia because of
-  # SIP-protected com.apple.provenance attributes on Electron's nested
-  # helper apps. Real Developer ID signing requires a paid Apple account.
-  # Users on macOS need to run `xattr -cr /Applications/Hinged.app` once
-  # after install — see README for instructions.
-  hardenedRuntime: false
+  hardenedRuntime: true
   gatekeeperAssess: false
-  identity: null
+  entitlements: resources/entitlements.mac.plist
+  entitlementsInherit: resources/entitlements.mac.inherit.plist
+  notarize: true
 win:
   target:
     - target: nsis
