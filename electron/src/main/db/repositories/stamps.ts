@@ -25,6 +25,9 @@ interface Row {
   quantity: number;
   tradeable: number;
   series_id: number | null;
+  cert_number: string | null;
+  cert_issuer: string | null;
+  cert_date: string | null;
   created_at: string;
   updated_at: string;
   deleted_at: string | null;
@@ -53,6 +56,9 @@ const toStamp = (r: Row): Stamp => ({
   quantity: r.quantity,
   tradeable: r.tradeable === 1,
   seriesId: r.series_id,
+  certNumber: r.cert_number,
+  certIssuer: r.cert_issuer,
+  certDate: r.cert_date,
   createdAt: r.created_at,
   updatedAt: r.updated_at,
   deletedAt: r.deleted_at,
@@ -114,6 +120,9 @@ export interface NewStampInput {
   imageFilename?: string | null;
   quantity?: number;
   tradeable?: boolean;
+  certNumber?: string | null;
+  certIssuer?: string | null;
+  certDate?: string | null;
   createdAt?: string;
   updatedAt?: string;
   uuid?: string;
@@ -133,8 +142,10 @@ export function insertStamp(db: DB, input: NewStampInput): Stamp {
         denomination, color, perforation_gauge, watermark,
         gum_condition_raw, centering_grade_raw, collection_status_raw,
         notes, purchase_price, purchase_date, acquisition_source,
-        image_filename, quantity, tradeable, series_id, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        image_filename, quantity, tradeable, series_id,
+        cert_number, cert_issuer, cert_date,
+        created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     )
     .run(
       uuid,
@@ -158,6 +169,9 @@ export function insertStamp(db: DB, input: NewStampInput): Stamp {
       quantity,
       tradeable,
       input.seriesId ?? null,
+      input.certNumber ?? null,
+      input.certIssuer ?? null,
+      input.certDate ?? null,
       createdAt,
       updatedAt,
     );
@@ -184,6 +198,9 @@ export function insertStamp(db: DB, input: NewStampInput): Stamp {
     quantity,
     tradeable: tradeable === 1,
     seriesId: input.seriesId ?? null,
+    certNumber: input.certNumber ?? null,
+    certIssuer: input.certIssuer ?? null,
+    certDate: input.certDate ?? null,
     createdAt,
     updatedAt,
     deletedAt: null,
@@ -211,6 +228,9 @@ export interface StampPatch {
   imageFilename?: string | null;
   quantity?: number;
   tradeable?: boolean;
+  certNumber?: string | null;
+  certIssuer?: string | null;
+  certDate?: string | null;
 }
 
 const PATCH_COLUMNS: Record<keyof StampPatch, string> = {
@@ -234,6 +254,9 @@ const PATCH_COLUMNS: Record<keyof StampPatch, string> = {
   imageFilename: 'image_filename',
   quantity: 'quantity',
   tradeable: 'tradeable',
+  certNumber: 'cert_number',
+  certIssuer: 'cert_issuer',
+  certDate: 'cert_date',
 };
 
 function buildPatchSql(patch: StampPatch): { sets: string[]; values: unknown[] } | null {

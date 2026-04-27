@@ -84,6 +84,9 @@ export interface Stamp {
   imageFilename: string | null;
   quantity: number;
   tradeable: boolean;
+  certNumber: string | null;
+  certIssuer: string | null;
+  certDate: string | null;
   createdAt: string;
   updatedAt: string;
   deletedAt: string | null;
@@ -151,6 +154,9 @@ export interface NewStampPayload {
   acquisitionSource?: string;
   quantity?: number;
   tradeable?: boolean;
+  certNumber?: string | null;
+  certIssuer?: string | null;
+  certDate?: string | null;
 }
 
 export interface StampPatchPayload {
@@ -174,6 +180,9 @@ export interface StampPatchPayload {
   imageFilename?: string | null;
   quantity?: number;
   tradeable?: boolean;
+  certNumber?: string | null;
+  certIssuer?: string | null;
+  certDate?: string | null;
 }
 
 // ---------- Settings & custom catalogs ----------

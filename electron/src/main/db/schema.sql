@@ -64,6 +64,9 @@ CREATE TABLE IF NOT EXISTS stamps (
   quantity              INTEGER NOT NULL DEFAULT 1,
   tradeable             INTEGER NOT NULL DEFAULT 0,
   series_id             INTEGER,
+  cert_number           TEXT,
+  cert_issuer           TEXT,
+  cert_date             TEXT,
   created_at            TEXT NOT NULL,
   updated_at            TEXT NOT NULL,
   deleted_at            TEXT

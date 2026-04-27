@@ -542,6 +542,36 @@ tr.selected .status-chip {
   margin: 0;
 }
 
+/* ---------- Cert / provenance disclosure ---------- */
+
+.cert-section {
+  margin: 0.4rem 0 0.8rem;
+  border-top: 1px solid var(--border);
+  padding-top: 0.5rem;
+}
+
+.cert-section > summary {
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--fg-subtle);
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.cert-section > summary::-webkit-details-marker { display: none; }
+.cert-section > summary::before {
+  content: '▸';
+  font-size: 9px;
+  transition: transform 0.1s;
+}
+.cert-section[open] > summary::before {
+  transform: rotate(90deg);
+}
+
 /* ---------- Stamp detail ---------- */
 
 .stamp-detail {

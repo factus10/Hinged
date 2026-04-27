@@ -42,6 +42,9 @@ interface Draft {
   countryId: string;
   quantity: string;
   tradeable: boolean;
+  certNumber: string;
+  certIssuer: string;
+  certDate: string;
 }
 
 const emptyDraft: Draft = {
@@ -62,6 +65,9 @@ const emptyDraft: Draft = {
   countryId: '',
   quantity: '1',
   tradeable: false,
+  certNumber: '',
+  certIssuer: '',
+  certDate: '',
 };
 
 function fromStamp(s: Stamp): Draft {
@@ -83,6 +89,9 @@ function fromStamp(s: Stamp): Draft {
     countryId: s.countryId != null ? String(s.countryId) : '',
     quantity: String(s.quantity ?? 1),
     tradeable: s.tradeable,
+    certNumber: s.certNumber ?? '',
+    certIssuer: s.certIssuer ?? '',
+    certDate: s.certDate ? s.certDate.slice(0, 10) : '',
   };
 }
 
@@ -417,6 +426,44 @@ export function StampDetail() {
           onBlur={() => commitIfChanged('notes', { notes: draft.notes })}
         />
       </Field>
+
+      <details className="cert-section" open={Boolean(stamp.certNumber || stamp.certIssuer || stamp.certDate)}>
+        <summary>Certification &amp; provenance</summary>
+        <div className="detail-grid" style={{ marginTop: '0.5rem' }}>
+          <Field label="Cert Number">
+            <Input
+              value={draft.certNumber}
+              onChange={(e) => setDraft({ ...draft, certNumber: e.target.value })}
+              onBlur={() =>
+                commitIfChanged('certNumber', { certNumber: draft.certNumber || null })
+              }
+              placeholder="e.g. 612345"
+            />
+          </Field>
+          <Field label="Issuer">
+            <Input
+              value={draft.certIssuer}
+              onChange={(e) => setDraft({ ...draft, certIssuer: e.target.value })}
+              onBlur={() =>
+                commitIfChanged('certIssuer', { certIssuer: draft.certIssuer || null })
+              }
+              placeholder="e.g. PF, APEX, PSAG, BPA"
+            />
+          </Field>
+          <Field label="Cert Date">
+            <Input
+              type="date"
+              value={draft.certDate}
+              onChange={(e) => setDraft({ ...draft, certDate: e.target.value })}
+              onBlur={() =>
+                commitIfChanged('certDate', {
+                  certDate: draft.certDate ? `${draft.certDate}T00:00:00Z` : null,
+                })
+              }
+            />
+          </Field>
+        </div>
+      </details>
 
       <Field label="Image">
         <StampImage
