@@ -4,7 +4,7 @@
   "description": "Hinged - cross-platform stamp collection manager",
   "main": "./out/main/index.js",
   "author": "David Anderson",
-  "license": "MIT",
+  "license": "GPL-3.0-only",
   "type": "module",
   "homepage": "https://github.com/factus10/Hinged",
   "repository": {

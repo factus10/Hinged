@@ -109,4 +109,5 @@ npm run dist:linux    # Linux .AppImage + .deb
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+GPL v3 — see [LICENSE](LICENSE). Forks and derivative works must be
+distributed under the same license, with source available.
