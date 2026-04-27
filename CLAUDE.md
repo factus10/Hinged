@@ -127,6 +127,35 @@ folder because the package.json `name` is lowercase, while packaged
 builds use the capitalized `Hinged/` from `productName`. They're
 intentionally split so dev experiments don't touch real data.
 
+## Code signing (macOS only)
+
+The packaged macOS build is signed with a Developer ID Application
+certificate and notarized via Apple's notarytool. Configuration lives
+in [electron-builder.yml](electron/electron-builder.yml):
+
+- `mac.hardenedRuntime: true`
+- `mac.notarize: true`
+- `mac.entitlements` / `mac.entitlementsInherit` point at plists in
+  `resources/`
+
+CI provides the signing identity and notarization credentials via
+secrets in [.github/workflows/electron-build.yml](.github/workflows/electron-build.yml):
+
+- `MAC_CERT_P12_BASE64` → exported as `CSC_LINK`
+- `MAC_CERT_PASSWORD` → exported as `CSC_KEY_PASSWORD`
+- `APPLE_API_KEY_BASE64` → decoded into a `.p8` file at
+  `$RUNNER_TEMP/appstoreconnect/AuthKey.p8` and pointed at by
+  `APPLE_API_KEY`
+- `APPLE_API_KEY_ID`, `APPLE_API_ISSUER`
+
+Local builds without these env vars produce an unsigned bundle and
+electron-builder will print a warning, but the build still succeeds.
+**Don't add `identity: null` back to the yml** — that explicitly
+disables signing even when the env vars are present.
+
+Windows and Linux are not signed. The Windows binary triggers a
+SmartScreen warning on first launch.
+
 ## Common commands
 
 ```bash
