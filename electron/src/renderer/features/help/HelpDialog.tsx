@@ -392,6 +392,7 @@ const TOPICS: Topic[] = [
           <li><strong>Tradeable</strong> — check this to surface the stamp in the Trading Stock smart collection.</li>
           <li><strong>Series</strong> — the issuing series this stamp belongs to (e.g. Famous Americans, Prexies). See the <em>Series</em> topic.</li>
           <li><strong>Notes</strong> — anything else.</li>
+          <li><strong>Cert Number / Issuer / Cert Date</strong> — for stamps with expert certificates. Hidden behind a small toggle since most stamps don&apos;t have them.</li>
           <li><strong>Image</strong> — drag a photo onto the box, or click to pick one.</li>
         </ul>
 
@@ -948,6 +949,101 @@ const TOPICS: Topic[] = [
     ),
   },
 
+  // ---------- Statistics ----------
+  {
+    id: 'statistics',
+    title: 'Statistics dashboard',
+    body: (
+      <>
+        <p>
+          <strong>Tools &rarr; Statistics&hellip;</strong> opens a single
+          page that summarizes your whole collection: counts, completion
+          percentages, range of dates, spending totals, top countries, top
+          series, and a by-decade histogram. The page is computed from
+          data you already have in Hinged — nothing to set up.
+        </p>
+
+        <h4>What you&apos;ll see, top to bottom</h4>
+        <ul>
+          <li><strong>Top row of cards</strong> — total entries, owned, wanted, completion percentage (owned ÷ tracked, where "tracked" is owned + wanted), how many stamps have images, your trading-stock count, how many have certs, and how many you&apos;ve added in the last 30 days.</li>
+          <li><strong>Range</strong> — your oldest stamp, your newest stamp, and the span in years.</li>
+          <li><strong>Spending</strong> — total spent, how many stamps have a recorded purchase price, and the average. Only appears if at least one stamp has a price.</li>
+          <li><strong>By decade</strong> — a horizontal bar chart with one row per decade that has at least one stamp in your collection.</li>
+          <li><strong>Top countries</strong> — your ten countries by stamp count. Each row has a dual-fill bar: a pale-blue background showing total tracked stamps and a green overlay showing owned. A country with 90/100 looks almost fully green; one with 30/100 looks mostly pale.</li>
+          <li><strong>Top series</strong> — same dual-fill display.</li>
+          <li><strong>By catalog system</strong> — counts of stamps under Scott, SG, Michel, Yvert, Sakura, Facit, or any custom systems you&apos;ve defined.</li>
+        </ul>
+
+        <Tip>
+          The dual-fill bars on Top Countries and Top Series are the most
+          useful single view in the app for "where am I almost done?".
+          Countries that look almost fully green are nearly complete;
+          ones that are mostly pale blue are mostly want-list and good
+          targets to focus on.
+        </Tip>
+
+        <p>
+          The dashboard updates the moment you change anything in your
+          collection. Mark a stamp Owned in the detail pane and the
+          completion percentage adjusts immediately.
+        </p>
+      </>
+    ),
+  },
+
+  // ---------- Want list export ----------
+  {
+    id: 'want-list-export',
+    title: 'Printing a want list',
+    body: (
+      <>
+        <p>
+          Going to a stamp show? <strong>Tools &rarr; Print Want List&hellip;</strong>
+          generates a clean, printable list of every stamp marked Wanted,
+          grouped by country and sorted by catalog number. Take the printed
+          page (or the PDF on a phone) to the show and check off as you go.
+        </p>
+
+        <h4>Steps</h4>
+        <ol className="help-steps">
+          <li>Choose <strong>Tools &rarr; Print Want List&hellip;</strong></li>
+          <li>
+            Pick a <strong>country</strong>, or leave it on <em>All countries</em>
+            for everything you&apos;re wanting.
+          </li>
+          <li>
+            Pick a <strong>format</strong>:
+            <ul>
+              <li><strong>PDF</strong> — looks like a real document, paginates correctly, ready to print or AirPrint to a phone.</li>
+              <li><strong>Markdown</strong> — plain text with tables, useful for emailing or pasting into Discord / a notes app.</li>
+            </ul>
+          </li>
+          <li>
+            Set the <strong>title</strong> (default "Want List") and an
+            optional <strong>subtitle</strong> like <em>"For PIPEX 2026"</em>.
+          </li>
+          <li>
+            Toggle <strong>Include Series column</strong> and <strong>Include
+            Budget column</strong> as needed.
+            <ul>
+              <li>The Series column shows the series each stamp belongs to.</li>
+              <li>The Budget column (PDF only) is empty cells, sized for handwriting prices on the page during the show.</li>
+            </ul>
+          </li>
+          <li>Click <strong>Export as PDF</strong> (or Markdown). Pick a save location.</li>
+        </ol>
+
+        <Tip>
+          The PDF renders catalog numbers with the country prefix from your
+          collection&apos;s catalog system, so a US Scott wantlist shows
+          stamps as "US 1, US 2, US 3", not just "1, 2, 3". This matches
+          how a dealer&apos;s stock is usually labeled and makes browsing
+          a stamp show much faster.
+        </Tip>
+      </>
+    ),
+  },
+
   // ---------- Gap analysis ----------
   {
     id: 'gap',
@@ -1314,6 +1410,9 @@ const TOPICS: Topic[] = [
 
           <dt>Series</dt>
           <dd>A coherent group of stamps issued together by the same postal authority — Famous Americans, Prexies, Series of 1857–61, Machin definitives, etc. Different from an album: a series is an issuer concept, an album is a personal organization concept.</dd>
+
+          <dt>Cert (certification)</dt>
+          <dd>An expert certificate from a body like APEX, PF, PSAG, or BPA confirming a stamp's identity, condition, or genuineness. Hinged tracks the cert number, issuing body, and date.</dd>
 
           <dt>Smart collection</dt>
           <dd>A view that&apos;s computed automatically based on stamp tags (e.g. All Owned, Want List). You don&apos;t add stamps to smart collections directly.</dd>

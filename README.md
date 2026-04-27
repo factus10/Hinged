@@ -78,6 +78,19 @@ Either:
   toolbar. Series carry their own metadata (description, country, year
   range), are managed under Tools → Series, and round-trip through
   backups, CSV, and shared templates.
+- **Cert / provenance** — optional cert number, issuing body, and cert
+  date per stamp. Collapsed by default in the detail pane; auto-opens
+  for stamps that have any cert info.
+- **Sidebar progress badges** — small "owned / total" badges next to
+  each collection and album showing tracked-stamp completion at a glance.
+- **Timeline filter** — toolbar toggle for a year-range filter with a
+  small histogram of stamps per year.
+- **Statistics dashboard** — Tools → Statistics. Counts, completion
+  percentages, range, spending totals, by-decade chart, top countries
+  and series with dual-fill bars showing owned vs tracked.
+- **Want-list export** — Tools → Print Want List. Generates a printable
+  PDF or shareable Markdown grouped by country, with optional Series
+  and Budget columns. Take to your next stamp show.
 - **Backup & restore** — `.hinged` JSON backup files are bidirectionally
   compatible with the original macOS Swift app.
 - **Native menus and shortcuts** — ⌘⇧N new collection, ⌘⌥N new album,
