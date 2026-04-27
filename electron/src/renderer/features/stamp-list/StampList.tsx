@@ -158,7 +158,7 @@ export function StampList() {
   const bulkDelete = useBulkDeleteStamps();
   const restoreStamps = useRestoreStamps();
   const emptyTrash = useEmptyTrash();
-  const { openCsvImport } = useDialogs();
+  const { openCsvImport, openBulkAssignSeries } = useDialogs();
 
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('');
@@ -645,6 +645,7 @@ export function StampList() {
           onClose={() => setPopover(null)}
           onApplyPatch={doBulkPatch}
           onDelete={doBulkDelete}
+          onAssignSeries={() => openBulkAssignSeries([...selectedStampIds])}
         />
       )}
     </section>

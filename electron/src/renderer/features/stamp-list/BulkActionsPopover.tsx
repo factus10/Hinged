@@ -15,6 +15,7 @@ interface Props {
   onClose: () => void;
   onApplyPatch: (patch: StampPatchPayload) => void;
   onDelete: () => void;
+  onAssignSeries: () => void;
 }
 
 export function BulkActionsPopover({
@@ -26,6 +27,7 @@ export function BulkActionsPopover({
   onClose,
   onApplyPatch,
   onDelete,
+  onAssignSeries,
 }: Props) {
   const ref = useRef<HTMLDivElement>(null);
 
@@ -97,6 +99,19 @@ export function BulkActionsPopover({
         <div className="context-menu-group-label">Tradeable</div>
         <button onClick={() => apply({ tradeable: true })}>Mark tradeable</button>
         <button onClick={() => apply({ tradeable: false })}>Unmark tradeable</button>
+      </div>
+
+      <div className="context-menu-group">
+        <div className="context-menu-group-label">Series</div>
+        <button
+          onClick={() => {
+            onAssignSeries();
+            onClose();
+          }}
+        >
+          Assign series…
+        </button>
+        <button onClick={() => apply({ seriesId: null })}>Clear series</button>
       </div>
 
       {albums.length > 0 && (

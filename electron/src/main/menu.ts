@@ -194,6 +194,10 @@ export function buildAppMenu(): void {
       click: () => sendTo(focusedWin(), RendererEvents.uiShowCountryManagement),
     },
     {
+      label: 'Series…',
+      click: () => sendTo(focusedWin(), RendererEvents.uiShowSeriesManagement),
+    },
+    {
       label: 'Gap Analysis…',
       click: () => sendTo(focusedWin(), RendererEvents.uiShowGapAnalysis),
     },

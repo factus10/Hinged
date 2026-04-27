@@ -13,6 +13,8 @@ import { SettingsDialog } from './features/settings/SettingsDialog';
 import { HelpDialog } from './features/help/HelpDialog';
 import { ApplyTemplateDialog } from './features/templates/ApplyTemplateDialog';
 import { CsvImportDialog } from './features/csv/CsvImportDialog';
+import { SeriesManagementDialog } from './features/series/SeriesManagementDialog';
+import { BulkAssignSeriesDialog } from './features/series/BulkAssignSeriesDialog';
 import type { CsvImportResult, ImportResult } from '@shared/types';
 import { qk } from './lib/query';
 import { useDialogs } from './state/dialogs';
@@ -83,6 +85,7 @@ export function App() {
       }),
       window.hinged.events.onShowSettings(() => dialogs.openSettings()),
       window.hinged.events.onShowCountryManagement(() => dialogs.openCountryManagement()),
+      window.hinged.events.onShowSeriesManagement(() => dialogs.openSeriesManagement()),
       window.hinged.events.onShowGapAnalysis(() => dialogs.openGapAnalysis()),
       window.hinged.events.onShowHelp(() => dialogs.openHelp()),
       window.hinged.events.onApplyTemplate(async () => {
@@ -133,6 +136,14 @@ export function App() {
       />
       <CsvImportDialog
         pending={dialogs.pendingCsvImport}
+        onClose={() => dialogs.closeAll()}
+      />
+      <SeriesManagementDialog
+        open={dialogs.showSeriesManagement}
+        onClose={() => dialogs.closeAll()}
+      />
+      <BulkAssignSeriesDialog
+        stampIds={dialogs.bulkAssignSeriesIds}
         onClose={() => dialogs.closeAll()}
       />
     </div>

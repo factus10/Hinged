@@ -1052,6 +1052,98 @@ kbd {
   gap: 0.4rem 0.6rem;
 }
 
+/* ---------- Series management ---------- */
+
+.series-manager {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 0.9rem;
+  min-height: 360px;
+}
+
+.series-manager-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  border-right: 1px solid var(--border);
+  padding-right: 0.9rem;
+}
+
+.series-list-scroll {
+  flex: 1;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  min-height: 220px;
+  max-height: 320px;
+  background: var(--bg);
+}
+
+.series-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.series-list li {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.55rem;
+  cursor: default;
+  font-size: 12.5px;
+}
+
+.series-list li:hover:not(.selected) {
+  background: var(--bg-hover);
+}
+
+.series-list li.selected {
+  background: var(--bg-selected);
+  color: var(--bg-selected-fg);
+}
+
+.series-list li .icon-btn {
+  opacity: 0;
+}
+.series-list li:hover .icon-btn,
+.series-list li.selected .icon-btn {
+  opacity: 1;
+}
+
+.series-list .series-name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.series-list .series-count {
+  white-space: nowrap;
+}
+
+.series-list li.selected .subtle {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.series-manager-new {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.series-manager-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  overflow: auto;
+}
+
+.series-year-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.6rem;
+}
+
 /* ---------- Settings ---------- */
 
 .settings-section-header {

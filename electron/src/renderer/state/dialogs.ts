@@ -19,18 +19,22 @@ interface DialogsState {
   editCollection: Collection | null;
   editAlbum: Album | null;
   showCountryManagement: boolean;
+  showSeriesManagement: boolean;
   showGapAnalysis: boolean;
   showSettings: boolean;
   showHelp: boolean;
   pendingTemplate: PendingTemplate | null;
   pendingCsvImport: PendingCsvImport | null;
+  bulkAssignSeriesIds: number[] | null;
 
   openNewCollection: () => void;
   openNewAlbum: (c: Collection) => void;
   openEditCollection: (c: Collection) => void;
   openEditAlbum: (a: Album) => void;
   openCountryManagement: () => void;
+  openSeriesManagement: () => void;
   openGapAnalysis: () => void;
+  openBulkAssignSeries: (ids: number[]) => void;
   openSettings: () => void;
   openHelp: () => void;
   openApplyTemplate: (t: PendingTemplate) => void;
@@ -44,18 +48,22 @@ export const useDialogs = create<DialogsState>((set) => ({
   editCollection: null,
   editAlbum: null,
   showCountryManagement: false,
+  showSeriesManagement: false,
   showGapAnalysis: false,
   showSettings: false,
   showHelp: false,
   pendingTemplate: null,
   pendingCsvImport: null,
+  bulkAssignSeriesIds: null,
 
   openNewCollection: () => set({ showNewCollection: true }),
   openNewAlbum: (c) => set({ newAlbumForCollection: c }),
   openEditCollection: (c) => set({ editCollection: c }),
   openEditAlbum: (a) => set({ editAlbum: a }),
   openCountryManagement: () => set({ showCountryManagement: true }),
+  openSeriesManagement: () => set({ showSeriesManagement: true }),
   openGapAnalysis: () => set({ showGapAnalysis: true }),
+  openBulkAssignSeries: (ids) => set({ bulkAssignSeriesIds: ids }),
   openSettings: () => set({ showSettings: true }),
   openHelp: () => set({ showHelp: true }),
   openApplyTemplate: (t) => set({ pendingTemplate: t }),
@@ -67,10 +75,12 @@ export const useDialogs = create<DialogsState>((set) => ({
       editCollection: null,
       editAlbum: null,
       showCountryManagement: false,
+      showSeriesManagement: false,
       showGapAnalysis: false,
       showSettings: false,
       showHelp: false,
       pendingTemplate: null,
       pendingCsvImport: null,
+      bulkAssignSeriesIds: null,
     }),
 }));
