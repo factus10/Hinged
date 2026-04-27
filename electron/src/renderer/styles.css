@@ -1130,14 +1130,97 @@ kbd {
 .shortcut-table {
   border-collapse: collapse;
   font-size: 12px;
+  width: 100%;
 }
 
 .shortcut-table td {
-  padding: 0.25rem 0.6rem;
+  padding: 0.3rem 0.6rem;
+  vertical-align: top;
 }
 
 .shortcut-table td:first-child {
   text-align: right;
+  white-space: nowrap;
+}
+
+.shortcut-table thead td {
+  font-weight: 600;
+  color: var(--fg-subtle);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+/* ---------- Help: callouts, recipes, glossary ---------- */
+
+.help-tip,
+.help-warning {
+  margin: 0.6rem 0;
+  padding: 0.55rem 0.75rem;
+  border-radius: 4px;
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+.help-tip {
+  background: rgba(31, 158, 100, 0.08);
+  border-left: 3px solid var(--owned);
+}
+
+.help-warning {
+  background: rgba(211, 58, 45, 0.08);
+  border-left: 3px solid var(--danger);
+}
+
+.help-tip .label,
+.help-warning .label {
+  font-weight: 600;
+  display: inline-block;
+  margin-right: 0.4em;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.help-tip .label { color: var(--owned); }
+.help-warning .label { color: var(--danger); }
+
+.help-steps {
+  padding-left: 1.4rem;
+  margin: 0.5rem 0 0.8rem;
+  counter-reset: helpstep;
+}
+
+.help-steps > li {
+  margin-bottom: 0.55rem;
+  line-height: 1.55;
+}
+
+.help-glossary {
+  margin: 0.5rem 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  column-gap: 0.9rem;
+  row-gap: 0.4rem;
+  font-size: 12.5px;
+}
+.help-glossary dt {
+  font-weight: 600;
+  color: var(--fg);
+}
+.help-glossary dd {
+  margin: 0;
+  color: var(--fg-subtle);
+  line-height: 1.5;
+}
+
+.help-content h4 {
+  font-size: 12.5px;
+  margin: 0.85rem 0 0.3rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--fg-subtle);
 }
 
 /* Make the dialog wider when it hosts manager/help/gap panels. */

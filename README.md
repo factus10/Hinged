@@ -45,13 +45,14 @@ Either:
 - **Country prefixes** — display catalog numbers with the right per-country
   prefix automatically (e.g. `US 1` instead of just `1`).
 - **Smart collections** — All Owned, Want List, Not Collecting, Recent
-  Additions, Trash.
+  Additions, Trading Stock, Trash.
 - **Bulk editing** — multi-select with ⌘/Ctrl+click, ⇧+click, and ⌘A.
   Right-click for status / condition / move-to-album / delete in one step.
 - **Quick add** — type a catalog number, year, denomination, hit Enter.
   Stamps fly into your album as fast as you can type.
 - **Keyboard navigation** — arrow keys move through the stamp list, Enter
-  jumps to edit, Delete trashes, Escape clears.
+  jumps to edit, Delete trashes, ⌘C copies selected rows as TSV, Escape
+  clears.
 - **Trash with restore** — deleted stamps go to a Trash smart collection
   for safekeeping until you empty it.
 - **Auto-backup on launch** — point Hinged at a folder and it writes a
@@ -60,8 +61,18 @@ Either:
 - **Image attachments** — drag and drop or pick an image for each stamp.
 - **Gap analysis** — pick a country and year range, see your completion
   percentage and the catalog-number gaps in your collection.
-- **CSV import & export** — flexible CSV in/out so you can move data
-  between Hinged and any spreadsheet.
+- **Smart CSV import** — column-mapping wizard accepts any CSV layout,
+  with auto-detection of common header names. Paste tab-separated data
+  from Excel or Numbers directly into the stamp list.
+- **CSV / TSV export** — file export for the current view, plus ⌘C
+  copies selected rows in spreadsheet-pasteable form.
+- **Community templates** — `.hinged-template.json` files let collectors
+  share catalog scaffolding (numbers, years, denominations, colors) for
+  any catalog range. Hinged ships zero templates; the format is a tool
+  for the community to use as it sees fit.
+- **Trading stock** — per-stamp `quantity` and `tradeable` flag, plus a
+  Trading Stock smart collection that surfaces duplicates and items
+  marked for trade.
 - **Backup & restore** — `.hinged` JSON backup files are bidirectionally
   compatible with the original macOS Swift app.
 - **Native menus and shortcuts** — ⌘⇧N new collection, ⌘⌥N new album,
