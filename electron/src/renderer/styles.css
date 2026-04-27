@@ -1474,6 +1474,133 @@ kbd {
   border-bottom: 1px solid var(--border);
 }
 
+/* ---------- Error boundary fallback ---------- */
+
+.error-boundary {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: var(--bg);
+  overflow: auto;
+  z-index: 9999;
+}
+
+.error-boundary-card {
+  max-width: 640px;
+  width: 100%;
+  background: var(--bg-subtle, var(--bg));
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1.4rem 1.6rem;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06), 0 12px 32px rgba(0, 0, 0, 0.10);
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+
+.error-boundary-symbol {
+  font-size: 28px;
+  color: var(--danger);
+  line-height: 1;
+}
+
+.error-boundary h1 {
+  margin: 0;
+  font-family: "Iowan Old Style", Palatino, Georgia, serif;
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.error-boundary p {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--fg-soft, var(--fg));
+}
+
+.error-boundary-message {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.55rem 0.7rem;
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+.error-boundary-message code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  word-break: break-word;
+  color: var(--danger);
+}
+
+.error-boundary-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin: 0.4rem 0;
+}
+
+.error-boundary-help {
+  margin-top: 0.2rem;
+}
+.error-boundary-help a {
+  color: var(--accent);
+}
+
+.error-boundary-details {
+  margin-top: 0.4rem;
+  font-size: 12px;
+}
+.error-boundary-details > summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--fg-subtle);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.error-boundary-details > summary::-webkit-details-marker { display: none; }
+.error-boundary-details > summary::before {
+  content: '▸';
+  font-size: 9px;
+  transition: transform 0.1s;
+}
+.error-boundary-details[open] > summary::before {
+  transform: rotate(90deg);
+}
+
+.error-boundary-section-label {
+  margin: 0.6rem 0 0.25rem;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--fg-subtle);
+}
+
+.error-boundary-details pre {
+  margin: 0;
+  padding: 0.6rem 0.75rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 280px;
+  overflow: auto;
+}
+
 /* ---------- About dialog ---------- */
 
 .about-hero {
