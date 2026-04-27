@@ -14,7 +14,11 @@ import type {
   NewAlbumPayload,
   NewCollectionPayload,
   NewCountryPayload,
+  NewSeriesPayload,
   NewStampPayload,
+  Series,
+  SeriesPatchPayload,
+  SeriesWithCount,
   Stamp,
   StampPatchPayload,
   TemplatePreview,
@@ -102,6 +106,17 @@ const api = {
     delete: (id: number): Promise<true> =>
       ipcRenderer.invoke(IpcChannels.customCatalogsDelete, id),
   },
+  series: {
+    list: (): Promise<Series[]> => ipcRenderer.invoke(IpcChannels.seriesList),
+    listWithCounts: (): Promise<SeriesWithCount[]> =>
+      ipcRenderer.invoke(IpcChannels.seriesListWithCounts),
+    create: (input: NewSeriesPayload): Promise<Series> =>
+      ipcRenderer.invoke(IpcChannels.seriesCreate, input),
+    update: (id: number, patch: SeriesPatchPayload): Promise<true> =>
+      ipcRenderer.invoke(IpcChannels.seriesUpdate, id, patch),
+    delete: (id: number): Promise<true> =>
+      ipcRenderer.invoke(IpcChannels.seriesDelete, id),
+  },
   csv: {
     exportStamps: (
       stamps: Stamp[],
@@ -179,6 +194,8 @@ const api = {
       onEvent(RendererEvents.uiApplyTemplate, cb),
     onExportAlbumAsTemplate: (cb: () => void): (() => void) =>
       onEvent(RendererEvents.uiExportAlbumAsTemplate, cb),
+    onShowSeriesManagement: (cb: () => void): (() => void) =>
+      onEvent(RendererEvents.uiShowSeriesManagement, cb),
   },
 };
 

@@ -24,6 +24,7 @@ interface Row {
   image_filename: string | null;
   quantity: number;
   tradeable: number;
+  series_id: number | null;
   created_at: string;
   updated_at: string;
   deleted_at: string | null;
@@ -51,6 +52,7 @@ const toStamp = (r: Row): Stamp => ({
   imageFilename: r.image_filename,
   quantity: r.quantity,
   tradeable: r.tradeable === 1,
+  seriesId: r.series_id,
   createdAt: r.created_at,
   updatedAt: r.updated_at,
   deletedAt: r.deleted_at,
@@ -94,6 +96,7 @@ export function countStamps(db: DB): number {
 export interface NewStampInput {
   albumId: number;
   countryId?: number | null;
+  seriesId?: number | null;
   catalogNumber: string;
   yearStart?: number | null;
   yearEnd?: number | null;
@@ -130,8 +133,8 @@ export function insertStamp(db: DB, input: NewStampInput): Stamp {
         denomination, color, perforation_gauge, watermark,
         gum_condition_raw, centering_grade_raw, collection_status_raw,
         notes, purchase_price, purchase_date, acquisition_source,
-        image_filename, quantity, tradeable, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        image_filename, quantity, tradeable, series_id, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     )
     .run(
       uuid,
@@ -154,6 +157,7 @@ export function insertStamp(db: DB, input: NewStampInput): Stamp {
       input.imageFilename ?? null,
       quantity,
       tradeable,
+      input.seriesId ?? null,
       createdAt,
       updatedAt,
     );
@@ -179,6 +183,7 @@ export function insertStamp(db: DB, input: NewStampInput): Stamp {
     imageFilename: input.imageFilename ?? null,
     quantity,
     tradeable: tradeable === 1,
+    seriesId: input.seriesId ?? null,
     createdAt,
     updatedAt,
     deletedAt: null,
@@ -188,6 +193,7 @@ export function insertStamp(db: DB, input: NewStampInput): Stamp {
 export interface StampPatch {
   albumId?: number;
   countryId?: number | null;
+  seriesId?: number | null;
   catalogNumber?: string;
   yearStart?: number | null;
   yearEnd?: number | null;
@@ -210,6 +216,7 @@ export interface StampPatch {
 const PATCH_COLUMNS: Record<keyof StampPatch, string> = {
   albumId: 'album_id',
   countryId: 'country_id',
+  seriesId: 'series_id',
   catalogNumber: 'catalog_number',
   yearStart: 'year_start',
   yearEnd: 'year_end',

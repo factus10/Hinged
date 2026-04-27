@@ -9,7 +9,9 @@ import type {
   NewAlbumPayload,
   NewCollectionPayload,
   NewCountryPayload,
+  NewSeriesPayload,
   NewStampPayload,
+  SeriesPatchPayload,
   Stamp,
   StampPatchPayload,
 } from '@shared/types.js';
@@ -51,6 +53,13 @@ import {
   listCustomCatalogs,
   updateCustomCatalog,
 } from './db/repositories/custom-catalogs.js';
+import {
+  deleteSeries,
+  insertSeries,
+  listSeries,
+  listSeriesWithCounts,
+  updateSeries,
+} from './db/repositories/series.js';
 import {
   deleteImage,
   detectExtension,
@@ -238,6 +247,21 @@ export function registerIpcHandlers(): void {
   });
   ipcMain.handle(IpcChannels.customCatalogsDelete, (_e, id: number) => {
     deleteCustomCatalog(getDatabase(), id);
+    return true;
+  });
+
+  // ----- Series -----
+  ipcMain.handle(IpcChannels.seriesList, () => listSeries(getDatabase()));
+  ipcMain.handle(IpcChannels.seriesListWithCounts, () => listSeriesWithCounts(getDatabase()));
+  ipcMain.handle(IpcChannels.seriesCreate, (_e, input: NewSeriesPayload) =>
+    insertSeries(getDatabase(), input),
+  );
+  ipcMain.handle(IpcChannels.seriesUpdate, (_e, id: number, patch: SeriesPatchPayload) => {
+    updateSeries(getDatabase(), id, patch);
+    return true;
+  });
+  ipcMain.handle(IpcChannels.seriesDelete, (_e, id: number) => {
+    deleteSeries(getDatabase(), id);
     return true;
   });
 

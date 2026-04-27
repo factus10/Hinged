@@ -18,4 +18,6 @@ export const qk = {
   trashedStamps: ['stamps', 'trashed'] as const,
   settings: ['settings'] as const,
   customCatalogs: ['customCatalogs'] as const,
+  series: ['series'] as const,
+  seriesWithCounts: ['series', 'withCounts'] as const,
 };

@@ -71,6 +71,8 @@ function runMigrations(db: DB): void {
   ensureColumn(db, 'stamps', 'quantity', 'INTEGER NOT NULL DEFAULT 1');
   ensureColumn(db, 'stamps', 'tradeable', 'INTEGER NOT NULL DEFAULT 0');
   db.exec('CREATE INDEX IF NOT EXISTS stamps_tradeable ON stamps(tradeable)');
+  ensureColumn(db, 'stamps', 'series_id', 'INTEGER REFERENCES series(id) ON DELETE SET NULL');
+  db.exec('CREATE INDEX IF NOT EXISTS stamps_series ON stamps(series_id)');
 }
 
 function ensureColumn(db: DB, table: string, column: string, type: string): void {

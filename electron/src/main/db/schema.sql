@@ -63,6 +63,7 @@ CREATE TABLE IF NOT EXISTS stamps (
   image_filename        TEXT,
   quantity              INTEGER NOT NULL DEFAULT 1,
   tradeable             INTEGER NOT NULL DEFAULT 0,
+  series_id             INTEGER,
   created_at            TEXT NOT NULL,
   updated_at            TEXT NOT NULL,
   deleted_at            TEXT
@@ -80,6 +81,19 @@ CREATE TABLE IF NOT EXISTS custom_catalogs (
   key  TEXT NOT NULL UNIQUE,
   name TEXT NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS series (
+  id          INTEGER PRIMARY KEY,
+  uuid        TEXT NOT NULL UNIQUE,
+  name        TEXT NOT NULL,
+  description TEXT NOT NULL DEFAULT '',
+  country_id  INTEGER REFERENCES countries(id) ON DELETE SET NULL,
+  year_start  INTEGER,
+  year_end    INTEGER,
+  created_at  TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS series_country     ON series(country_id);
+CREATE INDEX IF NOT EXISTS series_name_nocase ON series(name COLLATE NOCASE);
 
 CREATE TABLE IF NOT EXISTS settings (
   key   TEXT PRIMARY KEY,

@@ -11,7 +11,11 @@ import type {
   NewAlbumPayload,
   NewCollectionPayload,
   NewCountryPayload,
+  NewSeriesPayload,
   NewStampPayload,
+  Series,
+  SeriesPatchPayload,
+  SeriesWithCount,
   Stamp,
   StampPatchPayload,
 } from '@shared/types';
@@ -286,6 +290,58 @@ export function useDeleteCustomCatalog() {
     mutationFn: (id: number) => window.hinged.customCatalogs.delete(id),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: qk.customCatalogs });
+    },
+  });
+}
+
+// ---------- Series ----------
+
+export function useSeries() {
+  return useQuery<Series[]>({
+    queryKey: qk.series,
+    queryFn: () => window.hinged.series.list(),
+  });
+}
+
+export function useSeriesWithCounts() {
+  return useQuery<SeriesWithCount[]>({
+    queryKey: qk.seriesWithCounts,
+    queryFn: () => window.hinged.series.listWithCounts(),
+  });
+}
+
+export function useCreateSeries() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: NewSeriesPayload) => window.hinged.series.create(input),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: qk.series });
+      void qc.invalidateQueries({ queryKey: qk.seriesWithCounts });
+    },
+  });
+}
+
+export function useUpdateSeries() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (args: { id: number; patch: SeriesPatchPayload }) =>
+      window.hinged.series.update(args.id, args.patch),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: qk.series });
+      void qc.invalidateQueries({ queryKey: qk.seriesWithCounts });
+    },
+  });
+}
+
+export function useDeleteSeries() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => window.hinged.series.delete(id),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: qk.series });
+      void qc.invalidateQueries({ queryKey: qk.seriesWithCounts });
+      // Stamps that referenced the deleted series now have null seriesId
+      void qc.invalidateQueries({ queryKey: qk.stamps });
     },
   });
 }

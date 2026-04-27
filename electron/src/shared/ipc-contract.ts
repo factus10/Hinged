@@ -44,6 +44,13 @@ export const IpcChannels = {
   customCatalogsUpdate: 'customCatalogs:update',
   customCatalogsDelete: 'customCatalogs:delete',
 
+  // Series
+  seriesList: 'series:list',
+  seriesListWithCounts: 'series:listWithCounts',
+  seriesCreate: 'series:create',
+  seriesUpdate: 'series:update',
+  seriesDelete: 'series:delete',
+
   // CSV
   csvExportStamps: 'csv:exportStamps',
   csvImportForAlbum: 'csv:importForAlbum',
@@ -81,6 +88,7 @@ export const RendererEvents = {
   uiExportCsv: 'ui:exportCsv',
   uiApplyTemplate: 'ui:applyTemplate',
   uiExportAlbumAsTemplate: 'ui:exportAlbumAsTemplate',
+  uiShowSeriesManagement: 'ui:showSeriesManagement',
   templateApplied: 'template:applied',
   templateExported: 'template:exported',
 } as const;

@@ -30,11 +30,43 @@ export interface Album {
   createdAt: string;
 }
 
+export interface Series {
+  id: number;
+  uuid: string;
+  name: string;
+  description: string;
+  countryId: number | null;
+  yearStart: number | null;
+  yearEnd: number | null;
+  createdAt: string;
+}
+
+export interface SeriesWithCount extends Series {
+  stampCount: number;
+}
+
+export interface NewSeriesPayload {
+  name: string;
+  description?: string;
+  countryId?: number | null;
+  yearStart?: number | null;
+  yearEnd?: number | null;
+}
+
+export interface SeriesPatchPayload {
+  name?: string;
+  description?: string;
+  countryId?: number | null;
+  yearStart?: number | null;
+  yearEnd?: number | null;
+}
+
 export interface Stamp {
   id: number;
   uuid: string;
   albumId: number;
   countryId: number | null;
+  seriesId: number | null;
   catalogNumber: string;
   yearStart: number | null;
   yearEnd: number | null;
@@ -102,6 +134,7 @@ export interface AlbumPatchPayload {
 export interface NewStampPayload {
   albumId: number;
   countryId?: number | null;
+  seriesId?: number | null;
   catalogNumber: string;
   yearStart?: number | null;
   yearEnd?: number | null;
@@ -123,6 +156,7 @@ export interface NewStampPayload {
 export interface StampPatchPayload {
   albumId?: number;
   countryId?: number | null;
+  seriesId?: number | null;
   catalogNumber?: string;
   yearStart?: number | null;
   yearEnd?: number | null;
@@ -200,6 +234,7 @@ export const CSV_MAPPABLE_FIELDS = [
   'purchasePrice',
   'purchaseDate',
   'acquisitionSource',
+  'series',
 ] as const;
 
 export type CsvMappableField = (typeof CSV_MAPPABLE_FIELDS)[number];
