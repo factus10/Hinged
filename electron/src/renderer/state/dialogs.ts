@@ -1,9 +1,16 @@
 import { create } from 'zustand';
-import type { Album, Collection, TemplatePreview } from '@shared/types';
+import type { Album, Collection, CsvPreviewPayload, TemplatePreview } from '@shared/types';
 
 export interface PendingTemplate {
   preview: TemplatePreview;
   rawJson: string;
+}
+
+export interface PendingCsvImport {
+  preview: CsvPreviewPayload;
+  /** Album ID the import will land in. */
+  albumId: number;
+  albumName: string;
 }
 
 interface DialogsState {
@@ -16,6 +23,7 @@ interface DialogsState {
   showSettings: boolean;
   showHelp: boolean;
   pendingTemplate: PendingTemplate | null;
+  pendingCsvImport: PendingCsvImport | null;
 
   openNewCollection: () => void;
   openNewAlbum: (c: Collection) => void;
@@ -26,6 +34,7 @@ interface DialogsState {
   openSettings: () => void;
   openHelp: () => void;
   openApplyTemplate: (t: PendingTemplate) => void;
+  openCsvImport: (p: PendingCsvImport) => void;
   closeAll: () => void;
 }
 
@@ -39,6 +48,7 @@ export const useDialogs = create<DialogsState>((set) => ({
   showSettings: false,
   showHelp: false,
   pendingTemplate: null,
+  pendingCsvImport: null,
 
   openNewCollection: () => set({ showNewCollection: true }),
   openNewAlbum: (c) => set({ newAlbumForCollection: c }),
@@ -49,6 +59,7 @@ export const useDialogs = create<DialogsState>((set) => ({
   openSettings: () => set({ showSettings: true }),
   openHelp: () => set({ showHelp: true }),
   openApplyTemplate: (t) => set({ pendingTemplate: t }),
+  openCsvImport: (p) => set({ pendingCsvImport: p }),
   closeAll: () =>
     set({
       showNewCollection: false,
@@ -60,5 +71,6 @@ export const useDialogs = create<DialogsState>((set) => ({
       showSettings: false,
       showHelp: false,
       pendingTemplate: null,
+      pendingCsvImport: null,
     }),
 }));

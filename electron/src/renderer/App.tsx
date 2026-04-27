@@ -12,6 +12,7 @@ import { GapAnalysisDialog } from './features/gap-analysis/GapAnalysisDialog';
 import { SettingsDialog } from './features/settings/SettingsDialog';
 import { HelpDialog } from './features/help/HelpDialog';
 import { ApplyTemplateDialog } from './features/templates/ApplyTemplateDialog';
+import { CsvImportDialog } from './features/csv/CsvImportDialog';
 import type { CsvImportResult, ImportResult } from '@shared/types';
 import { qk } from './lib/query';
 import { useDialogs } from './state/dialogs';
@@ -128,6 +129,10 @@ export function App() {
       <HelpDialog open={dialogs.showHelp} onClose={() => dialogs.closeAll()} />
       <ApplyTemplateDialog
         pending={dialogs.pendingTemplate}
+        onClose={() => dialogs.closeAll()}
+      />
+      <CsvImportDialog
+        pending={dialogs.pendingCsvImport}
         onClose={() => dialogs.closeAll()}
       />
     </div>

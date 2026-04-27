@@ -110,6 +110,23 @@ const api = {
       ipcRenderer.invoke(IpcChannels.csvExportStamps, { stamps, suggestedName }),
     importForAlbum: (albumId: number, albumName: string): Promise<true> =>
       ipcRenderer.invoke(IpcChannels.csvImportForAlbum, { albumId, albumName }),
+    pickAndPreview: (): Promise<
+      { ok: true; preview: import('@shared/types').CsvPreviewPayload } | { ok: false }
+    > => ipcRenderer.invoke(IpcChannels.csvPickAndPreview),
+    previewText: (
+      text: string,
+    ): Promise<
+      { ok: true; preview: import('@shared/types').CsvPreviewPayload } | { ok: false }
+    > => ipcRenderer.invoke(IpcChannels.csvPreviewText, { text }),
+    importWithMapping: (args: {
+      albumId: number;
+      text: string;
+      mapping: import('@shared/types').CsvFieldMapping;
+      delimiter: ',' | '\t';
+      duplicateAction: import('@shared/types').CsvDuplicateAction;
+      hasHeader: boolean;
+    }): Promise<import('@shared/types').CsvImportResult> =>
+      ipcRenderer.invoke(IpcChannels.csvImportWithMapping, args),
   },
   templates: {
     exportAlbum: (

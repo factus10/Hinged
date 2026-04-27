@@ -47,6 +47,9 @@ export const IpcChannels = {
   // CSV
   csvExportStamps: 'csv:exportStamps',
   csvImportForAlbum: 'csv:importForAlbum',
+  csvPickAndPreview: 'csv:pickAndPreview',
+  csvPreviewText: 'csv:previewText',
+  csvImportWithMapping: 'csv:importWithMapping',
 
   // Templates
   templateExportAlbum: 'template:exportAlbum',

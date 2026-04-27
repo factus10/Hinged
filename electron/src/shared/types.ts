@@ -183,6 +183,44 @@ export interface CsvImportResult {
   skipped: number;
 }
 
+export const CSV_MAPPABLE_FIELDS = [
+  'catalogNumber',
+  'country',
+  'year',
+  'denomination',
+  'color',
+  'gumCondition',
+  'centeringGrade',
+  'status',
+  'quantity',
+  'tradeable',
+  'notes',
+  'perforationGauge',
+  'watermark',
+  'purchasePrice',
+  'purchaseDate',
+  'acquisitionSource',
+] as const;
+
+export type CsvMappableField = (typeof CSV_MAPPABLE_FIELDS)[number];
+
+export interface CsvFieldMapping {
+  fields: Partial<Record<CsvMappableField, number | null>>;
+}
+
+export interface CsvPreviewPayload {
+  source: 'file' | 'clipboard';
+  /** File path on disk (for file source) or null for clipboard. */
+  path: string | null;
+  /** The full raw text — passed back to the import call so we don't re-read. */
+  text: string;
+  delimiter: ',' | '\t';
+  headers: string[];
+  sampleRows: string[][];
+  totalRows: number;
+  guessedMapping: CsvFieldMapping;
+}
+
 // ---------- Backup ----------
 
 export type ImportMode = 'replace' | 'merge';

@@ -6,7 +6,6 @@ import type {
   AppSettings,
   CollectionPatchPayload,
   CountryPatchPayload,
-  CsvDuplicateAction,
   NewAlbumPayload,
   NewCollectionPayload,
   NewCountryPayload,
@@ -59,7 +58,12 @@ import {
   loadImageBuffer,
   saveImageBuffer,
 } from './images.js';
-import { generateCsv } from './csv.js';
+import {
+  generateCsv,
+  importCsvWithMapping,
+  previewCsv,
+  type CsvFieldMapping,
+} from './csv.js';
 import { runCsvImport } from './menu.js';
 import {
   applyTemplate,
@@ -68,7 +72,11 @@ import {
   type ApplyTemplateOptions,
 } from './template.js';
 import { readFileSync as fsReadFileSync } from 'node:fs';
-import type { TemplatePreview } from '@shared/types.js';
+import type {
+  CsvDuplicateAction,
+  CsvPreviewPayload,
+  TemplatePreview,
+} from '@shared/types.js';
 
 export function registerIpcHandlers(): void {
   ipcMain.handle(IpcChannels.diagDbPath, () => getDatabasePath());
@@ -260,6 +268,107 @@ export function registerIpcHandlers(): void {
     async (_e, args: { albumId: number; albumName: string }) => {
       await runCsvImport(args.albumId, args.albumName);
       return true;
+    },
+  );
+
+  // Open a file picker, read the chosen CSV, return a preview payload that
+  // the renderer can pass through the column-mapping dialog.
+  ipcMain.handle(
+    IpcChannels.csvPickAndPreview,
+    async (e): Promise<{ ok: true; preview: CsvPreviewPayload } | { ok: false }> => {
+      const win = BrowserWindow.fromWebContents(e.sender);
+      const opts = {
+        title: 'Import CSV',
+        filters: [
+          { name: 'CSV / TSV', extensions: ['csv', 'tsv', 'txt'] },
+          { name: 'All Files', extensions: ['*'] },
+        ],
+        properties: ['openFile' as const],
+      };
+      const result = win
+        ? await dialog.showOpenDialog(win, opts)
+        : await dialog.showOpenDialog(opts);
+      if (result.canceled || result.filePaths.length === 0) return { ok: false };
+      const path = result.filePaths[0]!;
+      try {
+        const text = readFileSync(path, 'utf8');
+        const p = previewCsv(text);
+        return {
+          ok: true,
+          preview: {
+            source: 'file',
+            path,
+            text,
+            delimiter: p.delimiter,
+            headers: p.headers,
+            sampleRows: p.sampleRows,
+            totalRows: p.totalRows,
+            guessedMapping: p.guessedMapping,
+          },
+        };
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        if (win) {
+          await dialog.showMessageBox(win, {
+            type: 'error',
+            message: 'Failed to read CSV',
+            detail: message,
+          });
+        }
+        return { ok: false };
+      }
+    },
+  );
+
+  // Preview text passed in directly (e.g. clipboard contents).
+  ipcMain.handle(
+    IpcChannels.csvPreviewText,
+    (_e, args: { text: string }): { ok: true; preview: CsvPreviewPayload } | { ok: false } => {
+      try {
+        const p = previewCsv(args.text);
+        if (p.headers.length === 0) return { ok: false };
+        return {
+          ok: true,
+          preview: {
+            source: 'clipboard',
+            path: null,
+            text: args.text,
+            delimiter: p.delimiter,
+            headers: p.headers,
+            sampleRows: p.sampleRows,
+            totalRows: p.totalRows,
+            guessedMapping: p.guessedMapping,
+          },
+        };
+      } catch {
+        return { ok: false };
+      }
+    },
+  );
+
+  // Run an import with an explicit mapping. Used by the column-mapping
+  // dialog after the user confirms.
+  ipcMain.handle(
+    IpcChannels.csvImportWithMapping,
+    (
+      _e,
+      args: {
+        albumId: number;
+        text: string;
+        mapping: CsvFieldMapping;
+        delimiter: ',' | '\t';
+        duplicateAction: CsvDuplicateAction;
+        hasHeader: boolean;
+      },
+    ) => {
+      return importCsvWithMapping(getDatabase(), {
+        albumId: args.albumId,
+        text: args.text,
+        mapping: args.mapping,
+        delimiter: args.delimiter,
+        duplicateAction: args.duplicateAction,
+        hasHeader: args.hasHeader,
+      });
     },
   );
 

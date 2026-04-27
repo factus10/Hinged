@@ -22,6 +22,7 @@ import {
   useTrashedStamps,
 } from '@renderer/lib/api';
 import { useSelection } from '@renderer/state/selection';
+import { useDialogs } from '@renderer/state/dialogs';
 import { Button, Input, Select } from '@renderer/components/primitives';
 import type { Album, Collection, Country, Stamp, StampPatchPayload } from '@shared/types';
 import {
@@ -98,6 +99,7 @@ export function StampList() {
   const bulkDelete = useBulkDeleteStamps();
   const restoreStamps = useRestoreStamps();
   const emptyTrash = useEmptyTrash();
+  const { openCsvImport } = useDialogs();
 
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('');
@@ -324,14 +326,17 @@ export function StampList() {
 
   // Listen for menu-driven CSV + template commands
   useEffect(() => {
-    const offImport = window.hinged.events.onImportCsv(() => {
+    const offImport = window.hinged.events.onImportCsv(async () => {
       if (selection.type !== 'album') {
         alert('Select an album before importing a CSV.');
         return;
       }
       const album = albumsById.get(selection.id);
       if (!album) return;
-      void window.hinged.csv.importForAlbum(album.id, album.name);
+      const res = await window.hinged.csv.pickAndPreview();
+      if (res.ok) {
+        openCsvImport({ preview: res.preview, albumId: album.id, albumName: album.name });
+      }
     });
     const offExport = window.hinged.events.onExportCsv(() => {
       if (rows.length === 0) {
@@ -354,7 +359,39 @@ export function StampList() {
       offExport();
       offExportTemplate();
     };
-  }, [selection, albumsById, rows]);
+  }, [selection, albumsById, rows, openCsvImport]);
+
+  // Paste-from-clipboard import: when an album is selected and the user
+  // pastes a multi-row text block (TSV from Excel/Numbers, or CSV), open
+  // the column-mapping dialog with the pasted data.
+  useEffect(() => {
+    const onPaste = async (e: ClipboardEvent) => {
+      if (selection.type !== 'album') return;
+      // Don't hijack pastes targeted at form fields, contenteditables, etc.
+      const target = e.target as HTMLElement | null;
+      if (target) {
+        const tag = target.tagName;
+        if (tag === 'INPUT' || tag === 'TEXTAREA' || target.isContentEditable) return;
+      }
+      const text = e.clipboardData?.getData('text/plain') ?? '';
+      // Only interpret as data if it has at least two lines + a delimiter on
+      // the first row. Avoids triggering on incidental short pastes.
+      const firstLine = text.split(/\r?\n/)[0] ?? '';
+      const looksTabular =
+        text.includes('\n') && (firstLine.includes('\t') || firstLine.includes(','));
+      if (!looksTabular) return;
+
+      e.preventDefault();
+      const album = albumsById.get(selection.id);
+      if (!album) return;
+      const res = await window.hinged.csv.previewText(text);
+      if (res.ok) {
+        openCsvImport({ preview: res.preview, albumId: album.id, albumName: album.name });
+      }
+    };
+    document.addEventListener('paste', onPaste);
+    return () => document.removeEventListener('paste', onPaste);
+  }, [selection, albumsById, openCsvImport]);
 
   const selectionCount = selectedStampIds.size;
 
