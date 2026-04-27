@@ -17,6 +17,7 @@ import {
   useDeleteStamp,
   useEmptyTrash,
   useRestoreStamps,
+  useSeries,
   useSettings,
   useStamps,
   useTrashedStamps,
@@ -56,6 +57,7 @@ const TSV_HEADER = [
   'Year',
   'Denomination',
   'Color',
+  'Series',
   'Gum Condition',
   'Centering Grade',
   'Status',
@@ -69,6 +71,7 @@ function stampsToTsv(
   albumsById: Map<number, Album>,
   collectionsById: Map<number, Collection>,
   countriesById: Map<number, Country>,
+  seriesById: Map<number, { name: string }>,
 ): string {
   if (stamps.length === 0) return '';
   const lines: string[] = [TSV_HEADER.join('\t')];
@@ -83,12 +86,15 @@ function stampsToTsv(
         : s.yearEnd != null && s.yearEnd !== s.yearStart
           ? `${s.yearStart}-${s.yearEnd}`
           : String(s.yearStart);
+    const seriesName =
+      s.seriesId != null ? (seriesById.get(s.seriesId)?.name ?? '') : '';
     const fields = [
       s.catalogNumber,
       country?.name ?? '',
       year,
       s.denomination,
       s.color,
+      seriesName,
       s.gumConditionRaw,
       s.centeringGradeRaw,
       s.collectionStatusRaw,
@@ -143,6 +149,7 @@ export function StampList() {
   const { data: albums = [] } = useAlbums();
   const { data: collections = [] } = useCollections();
   const { data: countries = [] } = useCountries();
+  const { data: seriesList = [] } = useSeries();
   const { data: settings } = useSettings();
 
   const createStamp = useCreateStamp();
@@ -155,6 +162,7 @@ export function StampList() {
 
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('');
+  const [seriesFilter, setSeriesFilter] = useState<string>('');
   const [popover, setPopover] = useState<{ x: number; y: number } | null>(null);
 
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -162,6 +170,7 @@ export function StampList() {
   const albumsById = useMemo(() => new Map(albums.map((a) => [a.id, a])), [albums]);
   const collectionsById = useMemo(() => new Map(collections.map((c) => [c.id, c])), [collections]);
   const countriesById = useMemo(() => new Map(countries.map((c) => [c.id, c])), [countries]);
+  const seriesById = useMemo(() => new Map(seriesList.map((s) => [s.id, s])), [seriesList]);
 
   const { rows, header, canAddStamp, currentAlbumId } = useMemo(() => {
     const sourceStamps = isTrashView ? trashedStamps : liveStamps;
@@ -197,6 +206,11 @@ export function StampList() {
 
     if (statusFilter) {
       filtered = filtered.filter((s) => s.collectionStatusRaw === statusFilter);
+    }
+
+    if (seriesFilter) {
+      const sid = seriesFilter === 'none' ? null : Number(seriesFilter);
+      filtered = filtered.filter((s) => (s.seriesId ?? null) === sid);
     }
 
     if (search.trim()) {
@@ -246,7 +260,7 @@ export function StampList() {
       canAddStamp: !isTrashView && selection.type === 'album',
       currentAlbumId: selection.type === 'album' ? selection.id : null,
     };
-  }, [liveStamps, trashedStamps, isTrashView, albums, albumsById, collectionsById, selection, statusFilter, search]);
+  }, [liveStamps, trashedStamps, isTrashView, albums, albumsById, collectionsById, selection, statusFilter, seriesFilter, search]);
 
   // When the sidebar selection changes, reset stamp selection.
   useEffect(() => {
@@ -350,13 +364,13 @@ export function StampList() {
         if (selectedStampIds.size === 0) return;
         e.preventDefault();
         const selectedRows = rows.filter((r) => selectedStampIds.has(r.id));
-        const tsv = stampsToTsv(selectedRows, albumsById, collectionsById, countriesById);
+        const tsv = stampsToTsv(selectedRows, albumsById, collectionsById, countriesById, seriesById);
         if (tsv) {
           void navigator.clipboard.writeText(tsv);
         }
       }
     },
-    [rows, rowIndexById, focusedStampId, setSingleStamp, selectedStampIds, doBulkDelete, clearStampSelection, setSelectedStamps, albumsById, collectionsById, countriesById],
+    [rows, rowIndexById, focusedStampId, setSingleStamp, selectedStampIds, doBulkDelete, clearStampSelection, setSelectedStamps, albumsById, collectionsById, countriesById, seriesById],
   );
 
   const onAddStamp = async () => {
@@ -485,6 +499,19 @@ export function StampList() {
             <option value="wanted">Wanted</option>
             <option value="notCollecting">Not Collecting</option>
           </Select>
+          <Select
+            value={seriesFilter}
+            onChange={(e) => setSeriesFilter(e.target.value)}
+            title="Filter by series"
+          >
+            <option value="">All series</option>
+            <option value="none">— No series —</option>
+            {seriesList.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.name}
+              </option>
+            ))}
+          </Select>
           {isTrashView ? (
             <>
               {selectionCount > 0 && (
@@ -542,6 +569,7 @@ export function StampList() {
                 <th>Year</th>
                 <th>Denom.</th>
                 <th>Color</th>
+                <th>Series</th>
                 <th>Cond.</th>
                 <th>Status</th>
                 <th>Qty</th>
@@ -565,6 +593,9 @@ export function StampList() {
                     <td>{displayYear(s)}</td>
                     <td>{s.denomination}</td>
                     <td>{s.color}</td>
+                    <td className="series-cell subtle small">
+                      {s.seriesId != null ? seriesById.get(s.seriesId)?.name ?? '' : ''}
+                    </td>
                     <td className="mono small">
                       {gumConditionShorthand(s.gumConditionRaw)}{' '}
                       {centeringGradeShorthand(s.centeringGradeRaw)}

@@ -11,6 +11,7 @@ import {
 } from '@renderer/lib/api';
 import { useSelection } from '@renderer/state/selection';
 import { Button, Field, Input, Select, Textarea } from '@renderer/components/primitives';
+import { SeriesPicker } from '@renderer/components/SeriesPicker';
 import {
   catalogSystemLabel,
   centeringGrades,
@@ -332,6 +333,14 @@ export function StampDetail() {
               </option>
             ))}
           </Select>
+        </Field>
+
+        <Field label="Series" hint="e.g. Famous Americans, Prexies, Liberty">
+          <SeriesPicker
+            value={stamp.seriesId}
+            onChange={(id) => commit({ seriesId: id })}
+            defaultCountryId={collection?.countryId ?? stamp.countryId ?? null}
+          />
         </Field>
 
         <Field label={`Purchase Price (${currency})`}>
