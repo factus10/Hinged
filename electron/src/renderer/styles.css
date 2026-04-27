@@ -322,6 +322,61 @@ button {
   min-height: 0;
 }
 
+/* ---------- Timeline filter ---------- */
+
+.timeline-bar {
+  padding: 0.5rem 0.9rem 0.6rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-subtle);
+  flex-shrink: 0;
+}
+
+.timeline-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.4rem;
+}
+
+.timeline-histogram {
+  position: relative;
+  height: 36px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.timeline-bar-mark {
+  position: absolute;
+  bottom: 0;
+  width: 2px;
+  background: var(--ink-faint, var(--fg-faint, #9aa0ab));
+  opacity: 0.3;
+}
+
+.timeline-bar-mark.matched {
+  background: var(--accent);
+  opacity: 0.85;
+}
+
+.timeline-range-overlay {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: rgba(45, 111, 211, 0.08);
+  border-left: 1px solid var(--accent);
+  border-right: 1px solid var(--accent);
+  pointer-events: none;
+}
+
+.timeline-axis {
+  display: flex;
+  justify-content: space-between;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  margin-top: 0.25rem;
+}
+
 /* ---------- Quick add row ---------- */
 
 .quick-add-row {

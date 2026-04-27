@@ -51,6 +51,147 @@ function compareCatalogNumbers(a: string, b: string): number {
   return catalogCollator.compare(a, b);
 }
 
+interface TimelineBarProps {
+  rows: Stamp[];
+  yearMin: number | null;
+  yearMax: number | null;
+  setYearMin: (n: number | null) => void;
+  setYearMax: (n: number | null) => void;
+  /** All stamps in the current scope (before the timeline filter). Used
+      to figure out the available year range. */
+  sourceStamps: Stamp[];
+}
+
+function TimelineBar({
+  rows,
+  yearMin,
+  yearMax,
+  setYearMin,
+  setYearMax,
+  sourceStamps,
+}: TimelineBarProps): JSX.Element {
+  // Compute the bounds from the un-year-filtered stamps so the slider's
+  // endpoints don't shrink as you drag the handles inward.
+  const { absMin, absMax } = useMemo(() => {
+    const years = sourceStamps
+      .map((s) => s.yearStart)
+      .filter((y): y is number => y != null);
+    if (years.length === 0) {
+      const thisYear = new Date().getFullYear();
+      return { absMin: 1840, absMax: thisYear };
+    }
+    return {
+      absMin: Math.min(...years),
+      absMax: Math.max(...years),
+    };
+  }, [sourceStamps]);
+
+  // Compute counts per year on the un-filtered set (gives the histogram
+  // a stable shape regardless of the slider position).
+  const histogram = useMemo(() => {
+    const counts = new Map<number, number>();
+    for (const s of sourceStamps) {
+      if (s.yearStart == null) continue;
+      counts.set(s.yearStart, (counts.get(s.yearStart) ?? 0) + 1);
+    }
+    return counts;
+  }, [sourceStamps]);
+
+  const lo = yearMin ?? absMin;
+  const hi = yearMax ?? absMax;
+  const span = Math.max(1, absMax - absMin);
+
+  const matchedYears = useMemo(() => {
+    const s = new Set<number>();
+    for (const r of rows) if (r.yearStart != null) s.add(r.yearStart);
+    return s;
+  }, [rows]);
+
+  // Build histogram bars
+  const maxBarCount = useMemo(() => {
+    let m = 0;
+    for (const c of histogram.values()) if (c > m) m = c;
+    return Math.max(1, m);
+  }, [histogram]);
+
+  const bars: Array<{ year: number; pct: number; height: number; matched: boolean }> = [];
+  for (let y = absMin; y <= absMax; y += 1) {
+    const count = histogram.get(y) ?? 0;
+    if (count === 0) continue;
+    bars.push({
+      year: y,
+      pct: ((y - absMin) / span) * 100,
+      height: (count / maxBarCount) * 100,
+      matched: matchedYears.has(y) && y >= lo && y <= hi,
+    });
+  }
+
+  const reset = () => {
+    setYearMin(null);
+    setYearMax(null);
+  };
+
+  return (
+    <div className="timeline-bar">
+      <div className="timeline-controls">
+        <span className="subtle small">From</span>
+        <input
+          type="number"
+          className="input"
+          value={lo}
+          min={absMin}
+          max={hi}
+          onChange={(e) => {
+            const n = Number(e.target.value);
+            if (Number.isFinite(n)) setYearMin(n);
+          }}
+          style={{ width: 70 }}
+        />
+        <span className="subtle small">to</span>
+        <input
+          type="number"
+          className="input"
+          value={hi}
+          min={lo}
+          max={absMax}
+          onChange={(e) => {
+            const n = Number(e.target.value);
+            if (Number.isFinite(n)) setYearMax(n);
+          }}
+          style={{ width: 70 }}
+        />
+        <button type="button" className="btn" onClick={reset} style={{ fontSize: '11px' }}>
+          Reset
+        </button>
+        <span className="subtle small" style={{ marginLeft: 'auto' }}>
+          Stamps with no year: hidden
+        </span>
+      </div>
+      <div className="timeline-histogram">
+        {bars.map((b) => (
+          <span
+            key={b.year}
+            className={`timeline-bar-mark ${b.matched ? 'matched' : ''}`}
+            style={{ left: `${b.pct}%`, height: `${Math.max(8, b.height)}%` }}
+            title={`${b.year}: ${histogram.get(b.year)} stamp${histogram.get(b.year) === 1 ? '' : 's'}`}
+          />
+        ))}
+        <div
+          className="timeline-range-overlay"
+          style={{
+            left: `${((lo - absMin) / span) * 100}%`,
+            width: `${((hi - lo) / span) * 100}%`,
+          }}
+        />
+      </div>
+      <div className="timeline-axis subtle small">
+        <span>{absMin}</span>
+        <span>{absMax}</span>
+      </div>
+    </div>
+  );
+}
+
 const TSV_HEADER = [
   'Catalog Number',
   'Country',
@@ -163,6 +304,9 @@ export function StampList() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('');
   const [seriesFilter, setSeriesFilter] = useState<string>('');
+  const [showTimeline, setShowTimeline] = useState(false);
+  const [yearMin, setYearMin] = useState<number | null>(null);
+  const [yearMax, setYearMax] = useState<number | null>(null);
   const [popover, setPopover] = useState<{ x: number; y: number } | null>(null);
 
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -213,6 +357,17 @@ export function StampList() {
       filtered = filtered.filter((s) => (s.seriesId ?? null) === sid);
     }
 
+    // Timeline filter — by yearStart. Stamps with no year never match a
+    // restricted range; they're shown only when the timeline filter is off.
+    if (showTimeline && (yearMin != null || yearMax != null)) {
+      filtered = filtered.filter((s) => {
+        if (s.yearStart == null) return false;
+        if (yearMin != null && s.yearStart < yearMin) return false;
+        if (yearMax != null && s.yearStart > yearMax) return false;
+        return true;
+      });
+    }
+
     if (search.trim()) {
       const q = search.trim().toLowerCase();
       filtered = filtered.filter((s) => {
@@ -260,7 +415,7 @@ export function StampList() {
       canAddStamp: !isTrashView && selection.type === 'album',
       currentAlbumId: selection.type === 'album' ? selection.id : null,
     };
-  }, [liveStamps, trashedStamps, isTrashView, albums, albumsById, collectionsById, selection, statusFilter, seriesFilter, search]);
+  }, [liveStamps, trashedStamps, isTrashView, albums, albumsById, collectionsById, selection, statusFilter, seriesFilter, showTimeline, yearMin, yearMax, search]);
 
   // When the sidebar selection changes, reset stamp selection.
   useEffect(() => {
@@ -512,6 +667,22 @@ export function StampList() {
               </option>
             ))}
           </Select>
+          <button
+            type="button"
+            className={`btn ${showTimeline ? 'btn-primary' : ''}`}
+            onClick={() => {
+              const next = !showTimeline;
+              setShowTimeline(next);
+              if (!next) {
+                setYearMin(null);
+                setYearMax(null);
+              }
+            }}
+            title={showTimeline ? 'Hide year filter' : 'Filter by year range'}
+            style={{ fontSize: '12px' }}
+          >
+            Years
+          </button>
           {isTrashView ? (
             <>
               {selectionCount > 0 && (
@@ -535,6 +706,15 @@ export function StampList() {
       </div>
 
       {canAddStamp && currentAlbumId != null && <QuickAddRow albumId={currentAlbumId} />}
+
+      {showTimeline && <TimelineBar
+        rows={rows}
+        yearMin={yearMin}
+        yearMax={yearMax}
+        setYearMin={setYearMin}
+        setYearMax={setYearMax}
+        sourceStamps={isTrashView ? trashedStamps : liveStamps}
+      />}
 
       {!isTrashView && selectionCount > 1 && (
         <div className="bulk-toolbar">
