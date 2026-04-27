@@ -566,7 +566,10 @@ tr.selected .status-chip {
 
 .qty-cell {
   white-space: nowrap;
-  display: flex;
+  vertical-align: middle;
+}
+.qty-cell-inner {
+  display: inline-flex;
   gap: 0.3rem;
   align-items: center;
 }

@@ -787,12 +787,12 @@ export function StampList() {
                     </td>
                     <td className="qty-cell mono small">
                       {showsTrade && (
-                        <>
+                        <span className="qty-cell-inner">
                           {s.quantity > 1 && <span>{s.quantity}</span>}
                           {s.tradeable && (
                             <span className="trade-badge" title="Tradeable">↔</span>
                           )}
-                        </>
+                        </span>
                       )}
                     </td>
                     <td className="row-actions">
