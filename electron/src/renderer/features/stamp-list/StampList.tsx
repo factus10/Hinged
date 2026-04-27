@@ -50,6 +50,58 @@ function compareCatalogNumbers(a: string, b: string): number {
   return catalogCollator.compare(a, b);
 }
 
+const TSV_HEADER = [
+  'Catalog Number',
+  'Country',
+  'Year',
+  'Denomination',
+  'Color',
+  'Gum Condition',
+  'Centering Grade',
+  'Status',
+  'Quantity',
+  'Tradeable',
+  'Notes',
+];
+
+function stampsToTsv(
+  stamps: Stamp[],
+  albumsById: Map<number, Album>,
+  collectionsById: Map<number, Collection>,
+  countriesById: Map<number, Country>,
+): string {
+  if (stamps.length === 0) return '';
+  const lines: string[] = [TSV_HEADER.join('\t')];
+  for (const s of stamps) {
+    const album = albumsById.get(s.albumId);
+    const collection = album ? collectionsById.get(album.collectionId) : null;
+    const cid = collection?.countryId ?? s.countryId ?? null;
+    const country = cid != null ? countriesById.get(cid) : null;
+    const year =
+      s.yearStart == null
+        ? ''
+        : s.yearEnd != null && s.yearEnd !== s.yearStart
+          ? `${s.yearStart}-${s.yearEnd}`
+          : String(s.yearStart);
+    const fields = [
+      s.catalogNumber,
+      country?.name ?? '',
+      year,
+      s.denomination,
+      s.color,
+      s.gumConditionRaw,
+      s.centeringGradeRaw,
+      s.collectionStatusRaw,
+      String(s.quantity ?? 1),
+      s.tradeable ? 'TRUE' : 'FALSE',
+      // Replace tab/newline so a single line per stamp is preserved
+      s.notes.replace(/[\t\r\n]/g, ' '),
+    ];
+    lines.push(fields.join('\t'));
+  }
+  return lines.join('\n');
+}
+
 function displayCatalogNumber(
   stamp: Stamp,
   albumsById: Map<number, Album>,
@@ -291,9 +343,20 @@ export function StampList() {
           rows.map((r) => r.id),
           rows[0]?.id ?? null,
         );
+      } else if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'c') {
+        // Copy selected rows as TSV. Doesn't fire if the user is in a
+        // form field elsewhere — this listener is on .stamp-list which
+        // only has focus when the table itself is focused.
+        if (selectedStampIds.size === 0) return;
+        e.preventDefault();
+        const selectedRows = rows.filter((r) => selectedStampIds.has(r.id));
+        const tsv = stampsToTsv(selectedRows, albumsById, collectionsById, countriesById);
+        if (tsv) {
+          void navigator.clipboard.writeText(tsv);
+        }
       }
     },
-    [rows, rowIndexById, focusedStampId, setSingleStamp, selectedStampIds, doBulkDelete, clearStampSelection, setSelectedStamps],
+    [rows, rowIndexById, focusedStampId, setSingleStamp, selectedStampIds, doBulkDelete, clearStampSelection, setSelectedStamps, albumsById, collectionsById, countriesById],
   );
 
   const onAddStamp = async () => {
