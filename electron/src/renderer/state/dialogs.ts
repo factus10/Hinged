@@ -1,5 +1,10 @@
 import { create } from 'zustand';
-import type { Album, Collection } from '@shared/types';
+import type { Album, Collection, TemplatePreview } from '@shared/types';
+
+export interface PendingTemplate {
+  preview: TemplatePreview;
+  rawJson: string;
+}
 
 interface DialogsState {
   showNewCollection: boolean;
@@ -10,6 +15,7 @@ interface DialogsState {
   showGapAnalysis: boolean;
   showSettings: boolean;
   showHelp: boolean;
+  pendingTemplate: PendingTemplate | null;
 
   openNewCollection: () => void;
   openNewAlbum: (c: Collection) => void;
@@ -19,6 +25,7 @@ interface DialogsState {
   openGapAnalysis: () => void;
   openSettings: () => void;
   openHelp: () => void;
+  openApplyTemplate: (t: PendingTemplate) => void;
   closeAll: () => void;
 }
 
@@ -31,6 +38,7 @@ export const useDialogs = create<DialogsState>((set) => ({
   showGapAnalysis: false,
   showSettings: false,
   showHelp: false,
+  pendingTemplate: null,
 
   openNewCollection: () => set({ showNewCollection: true }),
   openNewAlbum: (c) => set({ newAlbumForCollection: c }),
@@ -40,6 +48,7 @@ export const useDialogs = create<DialogsState>((set) => ({
   openGapAnalysis: () => set({ showGapAnalysis: true }),
   openSettings: () => set({ showSettings: true }),
   openHelp: () => set({ showHelp: true }),
+  openApplyTemplate: (t) => set({ pendingTemplate: t }),
   closeAll: () =>
     set({
       showNewCollection: false,
@@ -50,5 +59,6 @@ export const useDialogs = create<DialogsState>((set) => ({
       showGapAnalysis: false,
       showSettings: false,
       showHelp: false,
+      pendingTemplate: null,
     }),
 }));

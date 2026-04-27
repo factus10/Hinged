@@ -154,6 +154,19 @@ export interface CustomCatalog {
   name: string;
 }
 
+// ---------- Templates ----------
+
+export interface TemplatePreview {
+  path: string;
+  name: string;
+  description: string;
+  catalogSystemRaw: string;
+  countryName: string | null;
+  stampCount: number;
+  createdBy: string | null;
+  createdAt: string;
+}
+
 // ---------- CSV ----------
 
 export type CsvDuplicateAction = 'skip' | 'update' | 'createNew';

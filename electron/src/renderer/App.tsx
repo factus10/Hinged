@@ -11,6 +11,7 @@ import { CountryManagementDialog } from './features/countries/CountryManagementD
 import { GapAnalysisDialog } from './features/gap-analysis/GapAnalysisDialog';
 import { SettingsDialog } from './features/settings/SettingsDialog';
 import { HelpDialog } from './features/help/HelpDialog';
+import { ApplyTemplateDialog } from './features/templates/ApplyTemplateDialog';
 import type { CsvImportResult, ImportResult } from '@shared/types';
 import { qk } from './lib/query';
 import { useDialogs } from './state/dialogs';
@@ -83,6 +84,10 @@ export function App() {
       window.hinged.events.onShowCountryManagement(() => dialogs.openCountryManagement()),
       window.hinged.events.onShowGapAnalysis(() => dialogs.openGapAnalysis()),
       window.hinged.events.onShowHelp(() => dialogs.openHelp()),
+      window.hinged.events.onApplyTemplate(async () => {
+        const res = await window.hinged.templates.peek();
+        if (res.ok) dialogs.openApplyTemplate({ preview: res.preview, rawJson: res.rawJson });
+      }),
     ];
     return () => offs.forEach((off) => off());
   }, [dialogs, collections, selection]);
@@ -121,6 +126,10 @@ export function App() {
       />
       <SettingsDialog open={dialogs.showSettings} onClose={() => dialogs.closeAll()} />
       <HelpDialog open={dialogs.showHelp} onClose={() => dialogs.closeAll()} />
+      <ApplyTemplateDialog
+        pending={dialogs.pendingTemplate}
+        onClose={() => dialogs.closeAll()}
+      />
     </div>
   );
 }

@@ -61,6 +61,14 @@ import {
 } from './images.js';
 import { generateCsv } from './csv.js';
 import { runCsvImport } from './menu.js';
+import {
+  applyTemplate,
+  parseTemplateJson,
+  writeTemplateFile,
+  type ApplyTemplateOptions,
+} from './template.js';
+import { readFileSync as fsReadFileSync } from 'node:fs';
+import type { TemplatePreview } from '@shared/types.js';
 
 export function registerIpcHandlers(): void {
   ipcMain.handle(IpcChannels.diagDbPath, () => getDatabasePath());
@@ -252,6 +260,80 @@ export function registerIpcHandlers(): void {
     async (_e, args: { albumId: number; albumName: string }) => {
       await runCsvImport(args.albumId, args.albumName);
       return true;
+    },
+  );
+
+  // ----- Templates -----
+  ipcMain.handle(
+    IpcChannels.templateExportAlbum,
+    async (e, args: { albumId: number; albumName: string }) => {
+      const win = BrowserWindow.fromWebContents(e.sender);
+      const opts = {
+        title: 'Export Album as Template',
+        defaultPath: `${args.albumName.replace(/[/\\?%*:|"<>]/g, '_')}.hinged-template.json`,
+        filters: [
+          { name: 'Hinged Template', extensions: ['hinged-template.json', 'json'] },
+        ],
+      };
+      const result = win
+        ? await dialog.showSaveDialog(win, opts)
+        : await dialog.showSaveDialog(opts);
+      if (result.canceled || !result.filePath) return { ok: false as const };
+      const out = writeTemplateFile(getDatabase(), result.filePath, args.albumId);
+      return { ok: true as const, path: result.filePath, stampsExported: out.stampsExported };
+    },
+  );
+
+  ipcMain.handle(
+    IpcChannels.templatePeek,
+    async (e): Promise<{ ok: true; preview: TemplatePreview; rawJson: string } | { ok: false }> => {
+      const win = BrowserWindow.fromWebContents(e.sender);
+      const opts = {
+        title: 'Apply Template',
+        filters: [
+          { name: 'Hinged Template', extensions: ['hinged-template.json', 'json'] },
+        ],
+        properties: ['openFile' as const],
+      };
+      const result = win
+        ? await dialog.showOpenDialog(win, opts)
+        : await dialog.showOpenDialog(opts);
+      if (result.canceled || result.filePaths.length === 0) return { ok: false };
+      const path = result.filePaths[0]!;
+      try {
+        const raw = fsReadFileSync(path, 'utf8');
+        const t = parseTemplateJson(raw);
+        const preview: TemplatePreview = {
+          path,
+          name: t.name,
+          description: t.description ?? '',
+          catalogSystemRaw: t.catalogSystemRaw,
+          countryName: t.country?.name ?? null,
+          stampCount: t.stamps.length,
+          createdBy: t.createdBy ?? null,
+          createdAt: t.createdAt,
+        };
+        return { ok: true, preview, rawJson: raw };
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        if (win) {
+          await dialog.showMessageBox(win, {
+            type: 'error',
+            message: 'Failed to read template',
+            detail: message,
+          });
+        }
+        return { ok: false };
+      }
+    },
+  );
+
+  ipcMain.handle(
+    IpcChannels.templateApply,
+    (_e, args: { rawJson: string; options: ApplyTemplateOptions }) => {
+      const template = parseTemplateJson(args.rawJson);
+      const result = applyTemplate(getDatabase(), template, args.options);
+      return result;
     },
   );
 

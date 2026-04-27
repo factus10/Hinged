@@ -164,6 +164,15 @@ export function buildAppMenu(): void {
       click: () => sendTo(focusedWin(), RendererEvents.uiExportCsv),
     },
     { type: 'separator' },
+    {
+      label: 'Apply Template…',
+      click: () => sendTo(focusedWin(), RendererEvents.uiApplyTemplate),
+    },
+    {
+      label: 'Export Selected Album as Template…',
+      click: () => sendTo(focusedWin(), RendererEvents.uiExportAlbumAsTemplate),
+    },
+    { type: 'separator' },
     isMac ? { role: 'close' } : { role: 'quit' },
   ];
 

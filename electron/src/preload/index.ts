@@ -17,6 +17,7 @@ import type {
   NewStampPayload,
   Stamp,
   StampPatchPayload,
+  TemplatePreview,
 } from '@shared/types.js';
 
 function onEvent<T>(channel: string, cb: (payload: T) => void): () => void {
@@ -110,6 +111,28 @@ const api = {
     importForAlbum: (albumId: number, albumName: string): Promise<true> =>
       ipcRenderer.invoke(IpcChannels.csvImportForAlbum, { albumId, albumName }),
   },
+  templates: {
+    exportAlbum: (
+      albumId: number,
+      albumName: string,
+    ): Promise<{ ok: true; path: string; stampsExported: number } | { ok: false }> =>
+      ipcRenderer.invoke(IpcChannels.templateExportAlbum, { albumId, albumName }),
+    peek: (): Promise<{ ok: true; preview: TemplatePreview; rawJson: string } | { ok: false }> =>
+      ipcRenderer.invoke(IpcChannels.templatePeek),
+    apply: (
+      rawJson: string,
+      options: {
+        targetCollectionId: number | null;
+        albumName: string;
+        newCollectionName?: string;
+      },
+    ): Promise<{
+      collectionId: number;
+      albumId: number;
+      countryId: number | null;
+      stampsCreated: number;
+    }> => ipcRenderer.invoke(IpcChannels.templateApply, { rawJson, options }),
+  },
   events: {
     onBackupImported: (
       cb: (payload: { path: string; result: ImportResult }) => void,
@@ -135,6 +158,10 @@ const api = {
     onShowHelp: (cb: () => void): (() => void) => onEvent(RendererEvents.uiShowHelp, cb),
     onImportCsv: (cb: () => void): (() => void) => onEvent(RendererEvents.uiImportCsv, cb),
     onExportCsv: (cb: () => void): (() => void) => onEvent(RendererEvents.uiExportCsv, cb),
+    onApplyTemplate: (cb: () => void): (() => void) =>
+      onEvent(RendererEvents.uiApplyTemplate, cb),
+    onExportAlbumAsTemplate: (cb: () => void): (() => void) =>
+      onEvent(RendererEvents.uiExportAlbumAsTemplate, cb),
   },
 };
 

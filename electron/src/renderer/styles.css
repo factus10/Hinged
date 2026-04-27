@@ -698,6 +698,29 @@ tr.selected .status-chip {
   gap: 0.4rem;
 }
 
+/* ---------- Template apply dialog summary ---------- */
+
+.template-summary {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.7rem 0.85rem;
+  background: var(--bg-subtle);
+  margin-bottom: 0.4rem;
+}
+.template-summary-name {
+  font-weight: 600;
+  font-size: 13px;
+}
+.template-summary-desc {
+  margin-top: 0.2rem;
+}
+.template-summary-meta {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-top: 0.4rem;
+}
+
 /* ---------- Empty state ---------- */
 
 .empty-state {

@@ -48,6 +48,11 @@ export const IpcChannels = {
   csvExportStamps: 'csv:exportStamps',
   csvImportForAlbum: 'csv:importForAlbum',
 
+  // Templates
+  templateExportAlbum: 'template:exportAlbum',
+  templatePeek: 'template:peek',
+  templateApply: 'template:apply',
+
   // Dialogs
   dialogChooseDirectory: 'dialog:chooseDirectory',
 
@@ -71,6 +76,10 @@ export const RendererEvents = {
   uiShowHelp: 'ui:showHelp',
   uiImportCsv: 'ui:importCsv',
   uiExportCsv: 'ui:exportCsv',
+  uiApplyTemplate: 'ui:applyTemplate',
+  uiExportAlbumAsTemplate: 'ui:exportAlbumAsTemplate',
+  templateApplied: 'template:applied',
+  templateExported: 'template:exported',
 } as const;
 
 export type RendererEvent = (typeof RendererEvents)[keyof typeof RendererEvents];

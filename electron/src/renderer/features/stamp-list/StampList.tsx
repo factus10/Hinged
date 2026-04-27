@@ -315,7 +315,7 @@ export function StampList() {
     clearStampSelection();
   };
 
-  // Listen for menu-driven CSV commands
+  // Listen for menu-driven CSV + template commands
   useEffect(() => {
     const offImport = window.hinged.events.onImportCsv(() => {
       if (selection.type !== 'album') {
@@ -333,9 +333,19 @@ export function StampList() {
       }
       void window.hinged.csv.exportStamps(rows);
     });
+    const offExportTemplate = window.hinged.events.onExportAlbumAsTemplate(() => {
+      if (selection.type !== 'album') {
+        alert('Select an album before exporting it as a template.');
+        return;
+      }
+      const album = albumsById.get(selection.id);
+      if (!album) return;
+      void window.hinged.templates.exportAlbum(album.id, album.name);
+    });
     return () => {
       offImport();
       offExport();
+      offExportTemplate();
     };
   }, [selection, albumsById, rows]);
 
