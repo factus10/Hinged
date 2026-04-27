@@ -93,13 +93,25 @@ async function importCsvForAlbum(
     message: 'Duplicate handling',
     detail:
       'How should stamps with catalog numbers that already exist in this album be handled?',
-    buttons: ['Skip duplicates', 'Update existing', 'Create new entries', 'Cancel'],
+    buttons: [
+      'Skip duplicates',
+      'Update existing',
+      'Update existing only (ignore unmatched)',
+      'Create new entries',
+      'Cancel',
+    ],
     defaultId: 0,
-    cancelId: 3,
+    cancelId: 4,
   });
-  if (modeBox.response === 3) return;
+  if (modeBox.response === 4) return;
   const action: CsvDuplicateAction =
-    modeBox.response === 0 ? 'skip' : modeBox.response === 1 ? 'update' : 'createNew';
+    modeBox.response === 0
+      ? 'skip'
+      : modeBox.response === 1
+        ? 'update'
+        : modeBox.response === 2
+          ? 'updateOnly'
+          : 'createNew';
 
   try {
     const csv = readFileSync(path, 'utf8');

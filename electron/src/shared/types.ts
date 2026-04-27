@@ -175,7 +175,7 @@ export interface TemplatePreview {
 
 // ---------- CSV ----------
 
-export type CsvDuplicateAction = 'skip' | 'update' | 'createNew';
+export type CsvDuplicateAction = 'skip' | 'update' | 'createNew' | 'updateOnly';
 
 export interface CsvImportResult {
   imported: number;

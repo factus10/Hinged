@@ -160,13 +160,23 @@ export function CsvImportDialog({ pending, onClose }: Props) {
       <div className="settings-section-header" style={{ marginTop: '0.5rem' }}>
         Duplicate handling
       </div>
-      <Field label="If a row has a catalog number that already exists in this album">
+      <Field
+        label="If a row has a catalog number that already exists in this album"
+        hint={
+          duplicateAction === 'updateOnly'
+            ? 'Rows whose catalog number is NOT in this album will be ignored — nothing new is created.'
+            : duplicateAction === 'update'
+              ? 'Only the columns you mapped will overwrite existing data. Unmapped fields are preserved.'
+              : undefined
+        }
+      >
         <Select
           value={duplicateAction}
           onChange={(e) => setDuplicateAction(e.target.value as CsvDuplicateAction)}
         >
           <option value="skip">Skip duplicates</option>
-          <option value="update">Update existing entries</option>
+          <option value="update">Update existing entries (and create new for unmatched)</option>
+          <option value="updateOnly">Update existing only (ignore unmatched)</option>
           <option value="createNew">Create new entries (allow duplicates)</option>
         </Select>
       </Field>

@@ -32,7 +32,7 @@ const HEADER = [
   'Notes',
 ];
 
-export type CsvDuplicateAction = 'skip' | 'update' | 'createNew';
+export type CsvDuplicateAction = 'skip' | 'update' | 'createNew' | 'updateOnly';
 
 export interface CsvImportResult {
   imported: number;
@@ -483,28 +483,40 @@ export function importCsvWithMapping(
           result.skipped += 1;
           continue;
         }
-        if (args.duplicateAction === 'update') {
-          updateStamp(tx, existing.id, {
-            yearStart,
-            yearEnd,
-            denomination,
-            color,
-            gumConditionRaw: gumRaw,
-            centeringGradeRaw: gradeRaw,
-            collectionStatusRaw: statusRaw,
-            notes,
-            countryId: countryRow?.id ?? null,
-            quantity,
-            tradeable,
-            perforationGauge,
-            watermark,
-            purchasePrice,
-            purchaseDate,
-            acquisitionSource: source,
-          });
+        if (args.duplicateAction === 'update' || args.duplicateAction === 'updateOnly') {
+          // Build a partial patch that ONLY includes fields the user mapped.
+          // Skipped fields shouldn't overwrite existing data with blanks.
+          // (For 'update', we still upsert; for 'updateOnly', we never insert
+          // — see below.)
+          const patch: Parameters<typeof updateStamp>[2] = {};
+          if (m.year != null) {
+            patch.yearStart = yearStart;
+            patch.yearEnd = yearEnd;
+          }
+          if (m.denomination != null) patch.denomination = denomination;
+          if (m.color != null) patch.color = color;
+          if (m.gumCondition != null) patch.gumConditionRaw = gumRaw;
+          if (m.centeringGrade != null) patch.centeringGradeRaw = gradeRaw;
+          if (m.status != null) patch.collectionStatusRaw = statusRaw;
+          if (m.notes != null) patch.notes = notes;
+          if (m.country != null) patch.countryId = countryRow?.id ?? null;
+          if (m.quantity != null) patch.quantity = quantity;
+          if (m.tradeable != null) patch.tradeable = tradeable;
+          if (m.perforationGauge != null) patch.perforationGauge = perforationGauge;
+          if (m.watermark != null) patch.watermark = watermark;
+          if (m.purchasePrice != null) patch.purchasePrice = purchasePrice;
+          if (m.purchaseDate != null) patch.purchaseDate = purchaseDate;
+          if (m.acquisitionSource != null) patch.acquisitionSource = source;
+          updateStamp(tx, existing.id, patch);
           result.updated += 1;
           continue;
         }
+      }
+
+      // No matching stamp. updateOnly is "match-or-skip" — never insert.
+      if (args.duplicateAction === 'updateOnly') {
+        result.skipped += 1;
+        continue;
       }
 
       insertStamp(tx, {
