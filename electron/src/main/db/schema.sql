@@ -61,6 +61,8 @@ CREATE TABLE IF NOT EXISTS stamps (
   purchase_date         TEXT,
   acquisition_source    TEXT NOT NULL DEFAULT '',
   image_filename        TEXT,
+  quantity              INTEGER NOT NULL DEFAULT 1,
+  tradeable             INTEGER NOT NULL DEFAULT 0,
   created_at            TEXT NOT NULL,
   updated_at            TEXT NOT NULL,
   deleted_at            TEXT

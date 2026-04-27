@@ -483,6 +483,32 @@ tr.selected .status-chip {
   box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.4);
 }
 
+.qty-cell {
+  white-space: nowrap;
+  display: flex;
+  gap: 0.3rem;
+  align-items: center;
+}
+.trade-badge {
+  display: inline-block;
+  padding: 0 0.4rem;
+  border-radius: 9999px;
+  background: rgba(45, 111, 211, 0.15);
+  color: var(--accent);
+  font-weight: 600;
+  font-size: 11px;
+}
+
+.checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: default;
+}
+.checkbox-row input[type='checkbox'] {
+  margin: 0;
+}
+
 /* ---------- Stamp detail ---------- */
 
 .stamp-detail {

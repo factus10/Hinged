@@ -68,6 +68,9 @@ function applySchema(db: DB): void {
 function runMigrations(db: DB): void {
   ensureColumn(db, 'stamps', 'deleted_at', 'TEXT');
   db.exec('CREATE INDEX IF NOT EXISTS stamps_deleted_at ON stamps(deleted_at)');
+  ensureColumn(db, 'stamps', 'quantity', 'INTEGER NOT NULL DEFAULT 1');
+  ensureColumn(db, 'stamps', 'tradeable', 'INTEGER NOT NULL DEFAULT 0');
+  db.exec('CREATE INDEX IF NOT EXISTS stamps_tradeable ON stamps(tradeable)');
 }
 
 function ensureColumn(db: DB, table: string, column: string, type: string): void {

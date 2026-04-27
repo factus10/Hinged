@@ -13,13 +13,20 @@ import { catalogSystemLabel } from '@shared/display';
 import { Button } from '@renderer/components/primitives';
 
 const SMART_ITEMS: Array<{
-  kind: 'allOwned' | 'wantList' | 'notCollecting' | 'recentAdditions' | 'trash';
+  kind:
+    | 'allOwned'
+    | 'wantList'
+    | 'notCollecting'
+    | 'recentAdditions'
+    | 'tradingStock'
+    | 'trash';
   label: string;
 }> = [
   { kind: 'allOwned', label: 'All Owned' },
   { kind: 'wantList', label: 'Want List' },
   { kind: 'notCollecting', label: 'Not Collecting' },
   { kind: 'recentAdditions', label: 'Recent Additions' },
+  { kind: 'tradingStock', label: 'Trading Stock' },
   { kind: 'trash', label: 'Trash' },
 ];
 

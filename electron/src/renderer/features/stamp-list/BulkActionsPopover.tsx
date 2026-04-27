@@ -93,6 +93,12 @@ export function BulkActionsPopover({
         ))}
       </div>
 
+      <div className="context-menu-group">
+        <div className="context-menu-group-label">Tradeable</div>
+        <button onClick={() => apply({ tradeable: true })}>Mark tradeable</button>
+        <button onClick={() => apply({ tradeable: false })}>Unmark tradeable</button>
+      </div>
+
       {albums.length > 0 && (
         <div className="context-menu-group">
           <div className="context-menu-group-label">Move to album</div>

@@ -1,6 +1,12 @@
 import { create } from 'zustand';
 
-export type SmartCollectionKind = 'allOwned' | 'wantList' | 'notCollecting' | 'recentAdditions' | 'trash';
+export type SmartCollectionKind =
+  | 'allOwned'
+  | 'wantList'
+  | 'notCollecting'
+  | 'recentAdditions'
+  | 'tradingStock'
+  | 'trash';
 
 export type Selection =
   | { type: 'none' }

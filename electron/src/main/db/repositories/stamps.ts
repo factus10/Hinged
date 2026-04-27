@@ -22,6 +22,8 @@ interface Row {
   purchase_date: string | null;
   acquisition_source: string;
   image_filename: string | null;
+  quantity: number;
+  tradeable: number;
   created_at: string;
   updated_at: string;
   deleted_at: string | null;
@@ -47,6 +49,8 @@ const toStamp = (r: Row): Stamp => ({
   purchaseDate: r.purchase_date,
   acquisitionSource: r.acquisition_source,
   imageFilename: r.image_filename,
+  quantity: r.quantity,
+  tradeable: r.tradeable === 1,
   createdAt: r.created_at,
   updatedAt: r.updated_at,
   deletedAt: r.deleted_at,
@@ -105,6 +109,8 @@ export interface NewStampInput {
   purchaseDate?: string | null;
   acquisitionSource?: string;
   imageFilename?: string | null;
+  quantity?: number;
+  tradeable?: boolean;
   createdAt?: string;
   updatedAt?: string;
   uuid?: string;
@@ -115,6 +121,8 @@ export function insertStamp(db: DB, input: NewStampInput): Stamp {
   const now = nowIso();
   const createdAt = input.createdAt ?? now;
   const updatedAt = input.updatedAt ?? now;
+  const quantity = input.quantity ?? 1;
+  const tradeable = input.tradeable ? 1 : 0;
   const info = db
     .prepare(
       `INSERT INTO stamps (
@@ -122,8 +130,8 @@ export function insertStamp(db: DB, input: NewStampInput): Stamp {
         denomination, color, perforation_gauge, watermark,
         gum_condition_raw, centering_grade_raw, collection_status_raw,
         notes, purchase_price, purchase_date, acquisition_source,
-        image_filename, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        image_filename, quantity, tradeable, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     )
     .run(
       uuid,
@@ -144,6 +152,8 @@ export function insertStamp(db: DB, input: NewStampInput): Stamp {
       input.purchaseDate ?? null,
       input.acquisitionSource ?? '',
       input.imageFilename ?? null,
+      quantity,
+      tradeable,
       createdAt,
       updatedAt,
     );
@@ -167,6 +177,8 @@ export function insertStamp(db: DB, input: NewStampInput): Stamp {
     purchaseDate: input.purchaseDate ?? null,
     acquisitionSource: input.acquisitionSource ?? '',
     imageFilename: input.imageFilename ?? null,
+    quantity,
+    tradeable: tradeable === 1,
     createdAt,
     updatedAt,
     deletedAt: null,
@@ -191,6 +203,8 @@ export interface StampPatch {
   purchaseDate?: string | null;
   acquisitionSource?: string;
   imageFilename?: string | null;
+  quantity?: number;
+  tradeable?: boolean;
 }
 
 const PATCH_COLUMNS: Record<keyof StampPatch, string> = {
@@ -211,6 +225,8 @@ const PATCH_COLUMNS: Record<keyof StampPatch, string> = {
   purchaseDate: 'purchase_date',
   acquisitionSource: 'acquisition_source',
   imageFilename: 'image_filename',
+  quantity: 'quantity',
+  tradeable: 'tradeable',
 };
 
 function buildPatchSql(patch: StampPatch): { sets: string[]; values: unknown[] } | null {
@@ -220,7 +236,10 @@ function buildPatchSql(patch: StampPatch): { sets: string[]; values: unknown[] }
     const col = PATCH_COLUMNS[key];
     if (!col) continue;
     sets.push(`${col} = ?`);
-    values.push(patch[key]);
+    let v: unknown = patch[key];
+    // Booleans → INTEGER 0/1 for SQLite
+    if (key === 'tradeable') v = v ? 1 : 0;
+    values.push(v);
   }
   if (sets.length === 0) return null;
   sets.push('updated_at = ?');

@@ -20,6 +20,8 @@ const HEADER = [
   'Gum Condition',
   'Centering Grade',
   'Status',
+  'Quantity',
+  'Tradeable',
   'Notes',
 ];
 
@@ -64,6 +66,8 @@ export function generateCsv(db: DB, stamps: Stamp[]): string {
       s.gumConditionRaw,
       s.centeringGradeRaw,
       s.collectionStatusRaw,
+      String(s.quantity ?? 1),
+      s.tradeable ? 'TRUE' : 'FALSE',
       escapeCsv(s.notes),
     ];
     lines.push(fields.join(','));
@@ -115,6 +119,8 @@ export function importCsvIntoAlbum(
   const gumIdx = idx('Gum Condition', 'gumCondition');
   const gradeIdx = idx('Centering Grade', 'centeringGrade');
   const notesIdx = idx('Notes', 'notes');
+  const quantityIdx = idx('Quantity', 'quantity');
+  const tradeableIdx = idx('Tradeable', 'tradeable');
 
   const existingStamps = listStampsForAlbum(db, albumId);
   const existingByCatalog = new Map<string, Stamp>();
@@ -142,6 +148,10 @@ export function importCsvIntoAlbum(
 
       const statusRaw = parseStatus(getField(fields, statusIdx));
 
+      const rawQuantity = getField(fields, quantityIdx);
+      const quantity = rawQuantity ? Math.max(1, Number(rawQuantity) || 1) : 1;
+      const tradeable = parseBoolean(getField(fields, tradeableIdx));
+
       const existing = existingByCatalog.get(catalogNumber);
       if (existing) {
         if (duplicateAction === 'skip') {
@@ -159,6 +169,8 @@ export function importCsvIntoAlbum(
             collectionStatusRaw: statusRaw,
             notes,
             countryId: countryRow?.id ?? null,
+            quantity,
+            tradeable,
           });
           result.updated += 1;
           continue;
@@ -177,12 +189,19 @@ export function importCsvIntoAlbum(
         centeringGradeRaw: gradeRaw,
         collectionStatusRaw: statusRaw,
         notes,
+        quantity,
+        tradeable,
       });
       result.imported += 1;
     }
 
     return result;
   });
+}
+
+function parseBoolean(value: string): boolean {
+  const up = value.trim().toUpperCase();
+  return up === 'TRUE' || up === 'YES' || up === '1' || up === 'T' || up === 'Y';
 }
 
 function getField(fields: string[], i: number | null): string {

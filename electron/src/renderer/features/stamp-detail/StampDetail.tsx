@@ -39,6 +39,8 @@ interface Draft {
   centeringGradeRaw: string;
   collectionStatusRaw: string;
   countryId: string;
+  quantity: string;
+  tradeable: boolean;
 }
 
 const emptyDraft: Draft = {
@@ -57,6 +59,8 @@ const emptyDraft: Draft = {
   centeringGradeRaw: 'unspecified',
   collectionStatusRaw: 'owned',
   countryId: '',
+  quantity: '1',
+  tradeable: false,
 };
 
 function fromStamp(s: Stamp): Draft {
@@ -76,6 +80,8 @@ function fromStamp(s: Stamp): Draft {
     centeringGradeRaw: s.centeringGradeRaw,
     collectionStatusRaw: s.collectionStatusRaw,
     countryId: s.countryId != null ? String(s.countryId) : '',
+    quantity: String(s.quantity ?? 1),
+    tradeable: s.tradeable,
   };
 }
 
@@ -364,6 +370,33 @@ export function StampDetail() {
               commitIfChanged('acquisitionSource', { acquisitionSource: draft.acquisitionSource })
             }
           />
+        </Field>
+
+        <Field label="Quantity" hint="Set above 1 to track duplicates">
+          <Input
+            type="number"
+            min={1}
+            value={draft.quantity}
+            onChange={(e) => setDraft({ ...draft, quantity: e.target.value })}
+            onBlur={() => {
+              const n = Math.max(1, Number(draft.quantity) || 1);
+              if (n !== stamp.quantity) commit({ quantity: n });
+            }}
+          />
+        </Field>
+
+        <Field label="Tradeable">
+          <label className="checkbox-row">
+            <input
+              type="checkbox"
+              checked={draft.tradeable}
+              onChange={(e) => {
+                setDraft({ ...draft, tradeable: e.target.checked });
+                commit({ tradeable: e.target.checked });
+              }}
+            />
+            <span className="subtle small">Show in Trading Stock smart collection</span>
+          </label>
         </Field>
       </div>
 

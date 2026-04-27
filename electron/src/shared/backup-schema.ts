@@ -59,6 +59,8 @@ const stampBackupSchema = z
     purchaseDate: z.string().nullable().optional(),
     acquisitionSource: z.string(),
     imageData: z.string().nullable().optional(),
+    quantity: z.number().int().optional(),
+    tradeable: z.boolean().optional(),
     createdAt: z.string(),
     updatedAt: z.string(),
     albumId: z.string(),

@@ -50,6 +50,8 @@ export interface Stamp {
   purchaseDate: string | null;
   acquisitionSource: string;
   imageFilename: string | null;
+  quantity: number;
+  tradeable: boolean;
   createdAt: string;
   updatedAt: string;
   deletedAt: string | null;
@@ -114,6 +116,8 @@ export interface NewStampPayload {
   purchasePrice?: string | null;
   purchaseDate?: string | null;
   acquisitionSource?: string;
+  quantity?: number;
+  tradeable?: boolean;
 }
 
 export interface StampPatchPayload {
@@ -134,6 +138,8 @@ export interface StampPatchPayload {
   purchaseDate?: string | null;
   acquisitionSource?: string;
   imageFilename?: string | null;
+  quantity?: number;
+  tradeable?: boolean;
 }
 
 // ---------- Settings & custom catalogs ----------

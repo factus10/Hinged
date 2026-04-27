@@ -134,6 +134,9 @@ export function StampList() {
             const t = Date.parse(s.createdAt);
             return Number.isFinite(t) && t >= cutoff;
           });
+        } else if (selection.kind === 'tradingStock') {
+          // Anything explicitly flagged tradeable, OR anything with quantity > 1
+          filtered = filtered.filter((s) => s.tradeable || s.quantity > 1);
         }
       }
     }
@@ -176,7 +179,11 @@ export function StampList() {
             ? 'Want List'
             : selection.kind === 'notCollecting'
               ? 'Not Collecting'
-              : 'Recent Additions';
+              : selection.kind === 'tradingStock'
+                ? 'Trading Stock'
+                : selection.kind === 'recentAdditions'
+                  ? 'Recent Additions'
+                  : 'Trash';
     }
 
     return {
@@ -437,12 +444,14 @@ export function StampList() {
                 <th>Color</th>
                 <th>Cond.</th>
                 <th>Status</th>
+                <th>Qty</th>
                 <th></th>
               </tr>
             </thead>
             <tbody>
               {rows.map((s) => {
                 const isSel = selectedStampIds.has(s.id);
+                const showsTrade = s.tradeable || s.quantity > 1;
                 return (
                   <tr
                     key={s.id}
@@ -464,6 +473,16 @@ export function StampList() {
                       <span className={`status-chip status-${s.collectionStatusRaw}`}>
                         {collectionStatusLabel[s.collectionStatusRaw] ?? s.collectionStatusRaw}
                       </span>
+                    </td>
+                    <td className="qty-cell mono small">
+                      {showsTrade && (
+                        <>
+                          {s.quantity > 1 && <span>{s.quantity}</span>}
+                          {s.tradeable && (
+                            <span className="trade-badge" title="Tradeable">↔</span>
+                          )}
+                        </>
+                      )}
                     </td>
                     <td className="row-actions">
                       <button
