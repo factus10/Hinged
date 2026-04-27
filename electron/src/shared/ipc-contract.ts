@@ -58,6 +58,10 @@ export const IpcChannels = {
   csvPreviewText: 'csv:previewText',
   csvImportWithMapping: 'csv:importWithMapping',
 
+  // Want list export
+  wantListExportPdf: 'wantList:exportPdf',
+  wantListExportMarkdown: 'wantList:exportMarkdown',
+
   // Templates
   templateExportAlbum: 'template:exportAlbum',
   templatePeek: 'template:peek',
@@ -90,6 +94,7 @@ export const RendererEvents = {
   uiExportAlbumAsTemplate: 'ui:exportAlbumAsTemplate',
   uiShowSeriesManagement: 'ui:showSeriesManagement',
   uiShowStatistics: 'ui:showStatistics',
+  uiShowWantListExport: 'ui:showWantListExport',
   templateApplied: 'template:applied',
   templateExported: 'template:exported',
 } as const;

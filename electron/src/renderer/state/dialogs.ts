@@ -22,6 +22,7 @@ interface DialogsState {
   showSeriesManagement: boolean;
   showGapAnalysis: boolean;
   showStatistics: boolean;
+  showWantListExport: boolean;
   showSettings: boolean;
   showHelp: boolean;
   pendingTemplate: PendingTemplate | null;
@@ -36,6 +37,7 @@ interface DialogsState {
   openSeriesManagement: () => void;
   openGapAnalysis: () => void;
   openStatistics: () => void;
+  openWantListExport: () => void;
   openBulkAssignSeries: (ids: number[]) => void;
   openSettings: () => void;
   openHelp: () => void;
@@ -53,6 +55,7 @@ export const useDialogs = create<DialogsState>((set) => ({
   showSeriesManagement: false,
   showGapAnalysis: false,
   showStatistics: false,
+  showWantListExport: false,
   showSettings: false,
   showHelp: false,
   pendingTemplate: null,
@@ -67,6 +70,7 @@ export const useDialogs = create<DialogsState>((set) => ({
   openSeriesManagement: () => set({ showSeriesManagement: true }),
   openGapAnalysis: () => set({ showGapAnalysis: true }),
   openStatistics: () => set({ showStatistics: true }),
+  openWantListExport: () => set({ showWantListExport: true }),
   openBulkAssignSeries: (ids) => set({ bulkAssignSeriesIds: ids }),
   openSettings: () => set({ showSettings: true }),
   openHelp: () => set({ showHelp: true }),
@@ -82,6 +86,7 @@ export const useDialogs = create<DialogsState>((set) => ({
       showSeriesManagement: false,
       showGapAnalysis: false,
       showStatistics: false,
+      showWantListExport: false,
       showSettings: false,
       showHelp: false,
       pendingTemplate: null,

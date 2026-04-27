@@ -73,6 +73,11 @@ import {
   previewCsv,
   type CsvFieldMapping,
 } from './csv.js';
+import {
+  exportWantListMarkdown,
+  exportWantListPdf,
+  type WantListOptions,
+} from './want-list.js';
 import { runCsvImport } from './menu.js';
 import {
   applyTemplate,
@@ -393,6 +398,22 @@ export function registerIpcHandlers(): void {
         duplicateAction: args.duplicateAction,
         hasHeader: args.hasHeader,
       });
+    },
+  );
+
+  // ----- Want list export -----
+  ipcMain.handle(
+    IpcChannels.wantListExportPdf,
+    async (e, opts: WantListOptions) => {
+      const win = BrowserWindow.fromWebContents(e.sender);
+      return exportWantListPdf(getDatabase(), win, opts);
+    },
+  );
+  ipcMain.handle(
+    IpcChannels.wantListExportMarkdown,
+    async (e, opts: WantListOptions) => {
+      const win = BrowserWindow.fromWebContents(e.sender);
+      return exportWantListMarkdown(getDatabase(), win, opts);
     },
   );
 

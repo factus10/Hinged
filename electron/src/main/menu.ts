@@ -205,6 +205,10 @@ export function buildAppMenu(): void {
       label: 'Statistics…',
       click: () => sendTo(focusedWin(), RendererEvents.uiShowStatistics),
     },
+    {
+      label: 'Print Want List…',
+      click: () => sendTo(focusedWin(), RendererEvents.uiShowWantListExport),
+    },
     { type: 'separator' },
     {
       label: 'Settings…',

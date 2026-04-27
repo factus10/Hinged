@@ -117,6 +117,24 @@ const api = {
     delete: (id: number): Promise<true> =>
       ipcRenderer.invoke(IpcChannels.seriesDelete, id),
   },
+  wantList: {
+    exportPdf: (opts: {
+      countryId: number | null;
+      includeSeries: boolean;
+      includeBudgetColumn: boolean;
+      title: string;
+      subtitle: string;
+    }): Promise<{ ok: true; path: string; count: number } | { ok: false; error?: string }> =>
+      ipcRenderer.invoke(IpcChannels.wantListExportPdf, opts),
+    exportMarkdown: (opts: {
+      countryId: number | null;
+      includeSeries: boolean;
+      includeBudgetColumn: boolean;
+      title: string;
+      subtitle: string;
+    }): Promise<{ ok: true; path: string; count: number } | { ok: false; error?: string }> =>
+      ipcRenderer.invoke(IpcChannels.wantListExportMarkdown, opts),
+  },
   csv: {
     exportStamps: (
       stamps: Stamp[],
@@ -198,6 +216,8 @@ const api = {
       onEvent(RendererEvents.uiShowSeriesManagement, cb),
     onShowStatistics: (cb: () => void): (() => void) =>
       onEvent(RendererEvents.uiShowStatistics, cb),
+    onShowWantListExport: (cb: () => void): (() => void) =>
+      onEvent(RendererEvents.uiShowWantListExport, cb),
   },
 };
 
