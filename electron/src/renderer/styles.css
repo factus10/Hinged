@@ -250,6 +250,32 @@ button {
   opacity: 1;
 }
 
+.rollup-badge {
+  display: inline-flex;
+  align-items: center;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 10.5px;
+  font-weight: 500;
+  padding: 1px 6px;
+  border-radius: 9999px;
+  background: rgba(127, 127, 127, 0.18);
+  color: var(--fg-subtle);
+  white-space: nowrap;
+  margin-left: 0.4rem;
+}
+
+.sidebar-collection.selected .rollup-badge,
+.sidebar-album.selected .rollup-badge {
+  background: rgba(255, 255, 255, 0.22);
+  color: rgba(255, 255, 255, 0.95);
+}
+
+/* Hide the badge on hover so it doesn't crowd the action icons */
+.sidebar-collection:hover .rollup-badge,
+.sidebar-album:hover .rollup-badge {
+  display: none;
+}
+
 /* ---------- Stamp list ---------- */
 
 .stamp-list {

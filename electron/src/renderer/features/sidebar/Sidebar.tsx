@@ -5,6 +5,7 @@ import {
   useCountries,
   useDeleteAlbum,
   useDeleteCollection,
+  useStamps,
 } from '@renderer/lib/api';
 import { useSelection, type Selection } from '@renderer/state/selection';
 import { useDialogs } from '@renderer/state/dialogs';
@@ -43,6 +44,7 @@ export function Sidebar() {
   const { data: collections = [] } = useCollections();
   const { data: albums = [] } = useAlbums();
   const { data: countries = [] } = useCountries();
+  const { data: stamps = [] } = useStamps();
   const deleteCollection = useDeleteCollection();
   const deleteAlbum = useDeleteAlbum();
   const dialogs = useDialogs();
@@ -56,6 +58,39 @@ export function Sidebar() {
     }
     return m;
   }, [albums]);
+
+  // Per-album { owned, total } counts. Total here is "tracked stamps in
+  // the album that count toward completion" — owned + wanted; ignoring
+  // notCollecting so it doesn't drag the percentage.
+  const albumCounts = useMemo(() => {
+    const m = new Map<number, { owned: number; total: number }>();
+    for (const s of stamps) {
+      const cur = m.get(s.albumId) ?? { owned: 0, total: 0 };
+      if (s.collectionStatusRaw === 'owned') {
+        cur.owned += 1;
+        cur.total += 1;
+      } else if (s.collectionStatusRaw === 'wanted') {
+        cur.total += 1;
+      }
+      // notCollecting stamps aren't counted in the progress total
+      m.set(s.albumId, cur);
+    }
+    return m;
+  }, [stamps]);
+
+  // Per-collection counts roll up from the albums beneath them.
+  const collectionCounts = useMemo(() => {
+    const m = new Map<number, { owned: number; total: number }>();
+    for (const a of albums) {
+      const ac = albumCounts.get(a.id);
+      if (!ac) continue;
+      const cur = m.get(a.collectionId) ?? { owned: 0, total: 0 };
+      cur.owned += ac.owned;
+      cur.total += ac.total;
+      m.set(a.collectionId, cur);
+    }
+    return m;
+  }, [albums, albumCounts]);
 
   const countriesById = useMemo(() => {
     const m = new Map<number, string>();
@@ -121,6 +156,7 @@ export function Sidebar() {
             const collSel: Selection = { type: 'collection', id: c.id };
             const cAlbums = albumsByCollection.get(c.id) ?? [];
             const countryName = c.countryId != null ? countriesById.get(c.countryId) : undefined;
+            const cCount = collectionCounts.get(c.id);
             return (
               <li key={c.id} className="sidebar-collection-group">
                 <div
@@ -135,6 +171,14 @@ export function Sidebar() {
                       {countryName ? ` • ${countryName}` : ''}
                     </span>
                   </div>
+                  {cCount && cCount.total > 0 && (
+                    <span
+                      className="rollup-badge"
+                      title={`${cCount.owned} of ${cCount.total} owned`}
+                    >
+                      {cCount.owned}/{cCount.total}
+                    </span>
+                  )}
                   <div className="sidebar-item-actions">
                     <button
                       className="icon-btn"
@@ -172,6 +216,7 @@ export function Sidebar() {
                   <ul className="sidebar-album-list">
                     {cAlbums.map((a) => {
                       const albSel: Selection = { type: 'album', id: a.id };
+                      const aCount = albumCounts.get(a.id);
                       return (
                         <li
                           key={a.id}
@@ -180,6 +225,14 @@ export function Sidebar() {
                           onDoubleClick={() => dialogs.openEditAlbum(a)}
                         >
                           <span className="sidebar-item-label">{a.name}</span>
+                          {aCount && aCount.total > 0 && (
+                            <span
+                              className="rollup-badge"
+                              title={`${aCount.owned} of ${aCount.total} owned`}
+                            >
+                              {aCount.owned}/{aCount.total}
+                            </span>
+                          )}
                           <div className="sidebar-item-actions">
                             <button
                               className="icon-btn"
