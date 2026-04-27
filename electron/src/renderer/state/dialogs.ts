@@ -21,6 +21,7 @@ interface DialogsState {
   showCountryManagement: boolean;
   showSeriesManagement: boolean;
   showGapAnalysis: boolean;
+  showStatistics: boolean;
   showSettings: boolean;
   showHelp: boolean;
   pendingTemplate: PendingTemplate | null;
@@ -34,6 +35,7 @@ interface DialogsState {
   openCountryManagement: () => void;
   openSeriesManagement: () => void;
   openGapAnalysis: () => void;
+  openStatistics: () => void;
   openBulkAssignSeries: (ids: number[]) => void;
   openSettings: () => void;
   openHelp: () => void;
@@ -50,6 +52,7 @@ export const useDialogs = create<DialogsState>((set) => ({
   showCountryManagement: false,
   showSeriesManagement: false,
   showGapAnalysis: false,
+  showStatistics: false,
   showSettings: false,
   showHelp: false,
   pendingTemplate: null,
@@ -63,6 +66,7 @@ export const useDialogs = create<DialogsState>((set) => ({
   openCountryManagement: () => set({ showCountryManagement: true }),
   openSeriesManagement: () => set({ showSeriesManagement: true }),
   openGapAnalysis: () => set({ showGapAnalysis: true }),
+  openStatistics: () => set({ showStatistics: true }),
   openBulkAssignSeries: (ids) => set({ bulkAssignSeriesIds: ids }),
   openSettings: () => set({ showSettings: true }),
   openHelp: () => set({ showHelp: true }),
@@ -77,6 +81,7 @@ export const useDialogs = create<DialogsState>((set) => ({
       showCountryManagement: false,
       showSeriesManagement: false,
       showGapAnalysis: false,
+      showStatistics: false,
       showSettings: false,
       showHelp: false,
       pendingTemplate: null,

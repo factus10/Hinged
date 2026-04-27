@@ -89,6 +89,7 @@ export const RendererEvents = {
   uiApplyTemplate: 'ui:applyTemplate',
   uiExportAlbumAsTemplate: 'ui:exportAlbumAsTemplate',
   uiShowSeriesManagement: 'ui:showSeriesManagement',
+  uiShowStatistics: 'ui:showStatistics',
   templateApplied: 'template:applied',
   templateExported: 'template:exported',
 } as const;

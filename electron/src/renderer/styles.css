@@ -1474,6 +1474,100 @@ kbd {
   border-bottom: 1px solid var(--border);
 }
 
+/* ---------- Statistics dashboard ---------- */
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.5rem;
+  margin-bottom: 0.6rem;
+}
+@media (max-width: 760px) {
+  .stats-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+.stat-card {
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-subtle);
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-height: 64px;
+}
+
+.stat-card-label {
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 600;
+}
+
+.stat-card-value {
+  font-size: 22px;
+  font-weight: 600;
+  line-height: 1.1;
+}
+
+.stat-card-hint {
+  margin-top: auto;
+}
+
+.stats-section-header {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--fg-subtle);
+  margin: 1rem 0 0.4rem;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 0.2rem;
+}
+
+.stats-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.stats-bar-row {
+  display: grid;
+  grid-template-columns: 130px 1fr 80px;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 12px;
+}
+
+.stats-bar-label {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.stats-bar-track {
+  position: relative;
+  height: 14px;
+  background: rgba(127, 127, 127, 0.12);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.stats-bar-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  background: rgba(45, 111, 211, 0.35);
+}
+
+.stats-bar-fill-owned {
+  background: var(--owned);
+}
+
+.stats-bar-value {
+  text-align: right;
+}
+
 /* ---------- Help: callouts, recipes, glossary ---------- */
 
 .help-tip,

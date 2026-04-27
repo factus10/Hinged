@@ -201,6 +201,10 @@ export function buildAppMenu(): void {
       label: 'Gap Analysis…',
       click: () => sendTo(focusedWin(), RendererEvents.uiShowGapAnalysis),
     },
+    {
+      label: 'Statistics…',
+      click: () => sendTo(focusedWin(), RendererEvents.uiShowStatistics),
+    },
     { type: 'separator' },
     {
       label: 'Settings…',

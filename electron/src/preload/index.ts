@@ -196,6 +196,8 @@ const api = {
       onEvent(RendererEvents.uiExportAlbumAsTemplate, cb),
     onShowSeriesManagement: (cb: () => void): (() => void) =>
       onEvent(RendererEvents.uiShowSeriesManagement, cb),
+    onShowStatistics: (cb: () => void): (() => void) =>
+      onEvent(RendererEvents.uiShowStatistics, cb),
   },
 };
 
