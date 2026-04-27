@@ -73,6 +73,11 @@ Either:
 - **Trading stock** — per-stamp `quantity` and `tradeable` flag, plus a
   Trading Stock smart collection that surfaces duplicates and items
   marked for trade.
+- **Series** — assign each stamp to a series (Famous Americans, Prexies,
+  Series of 1857–61, Machin definitives) and filter by it from the
+  toolbar. Series carry their own metadata (description, country, year
+  range), are managed under Tools → Series, and round-trip through
+  backups, CSV, and shared templates.
 - **Backup & restore** — `.hinged` JSON backup files are bidirectionally
   compatible with the original macOS Swift app.
 - **Native menus and shortcuts** — ⌘⇧N new collection, ⌘⌥N new album,

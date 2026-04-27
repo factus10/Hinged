@@ -390,6 +390,7 @@ const TOPICS: Topic[] = [
           <li><strong>Source</strong> — dealer name, show, eBay seller, etc.</li>
           <li><strong>Quantity</strong> — set above 1 to track duplicates.</li>
           <li><strong>Tradeable</strong> — check this to surface the stamp in the Trading Stock smart collection.</li>
+          <li><strong>Series</strong> — the issuing series this stamp belongs to (e.g. Famous Americans, Prexies). See the <em>Series</em> topic.</li>
           <li><strong>Notes</strong> — anything else.</li>
           <li><strong>Image</strong> — drag a photo onto the box, or click to pick one.</li>
         </ul>
@@ -437,7 +438,10 @@ const TOPICS: Topic[] = [
         <p>
           For more options, right-click any selected row. A small menu
           appears with options to set Status, Gum Condition, Centering,
-          Tradeable, or move every selected stamp to a different album.
+          Tradeable, the Series, or move every selected stamp to a
+          different album. The <em>Assign series&hellip;</em> action opens a
+          searchable picker, which is the fastest way to drop 30 Prexies
+          into the Presidential Issues series in one click.
         </p>
 
         <h4>Copy as a spreadsheet row</h4>
@@ -531,6 +535,102 @@ const TOPICS: Topic[] = [
           <li>Choose <strong>File &rarr; Export CSV (Current View)&hellip;</strong> to write the list as a CSV file.</li>
           <li>Send the file by email, or use <strong>File &rarr; Export Selected Album as Template&hellip;</strong> instead if you want to share a re-importable Hinged file.</li>
         </ol>
+      </>
+    ),
+  },
+
+  // ---------- Series ----------
+  {
+    id: 'series',
+    title: 'Series',
+    body: (
+      <>
+        <p>
+          A <strong>series</strong> is a coherent group of stamps issued
+          together, sharing a theme or a postal-administration era. Every
+          philatelic country has them. A few US examples:
+        </p>
+        <ul>
+          <li><strong>Series of 1857&ndash;61</strong> — the first US stamps with perforations (Scott 18&ndash;39).</li>
+          <li><strong>Bank Note Issues</strong> — the long National / Continental / American Bank Note runs of the 1870s and 1880s.</li>
+          <li><strong>Washington-Franklin issues</strong> — ~150 stamps from 1908 to 1922, all Washington or Franklin head designs.</li>
+          <li><strong>Famous Americans</strong> — the 35-stamp 1940 set across seven categories (authors, poets, educators, etc.).</li>
+          <li><strong>Presidential Issues</strong> (the &ldquo;Prexies&rdquo;) — every U.S. president on a different denomination, 1938&ndash;1954.</li>
+          <li><strong>Liberty</strong>, <strong>Prominent Americans</strong>, <strong>Great Americans</strong>, <strong>Transportation Coils</strong> — major definitive runs of the late 20th century.</li>
+        </ul>
+        <p>
+          Other countries have similar landmarks: the <strong>Penny Black</strong>
+          and the <strong>Machin definitives</strong> in the UK, the
+          <strong> Posthorn</strong> series in Germany, etc.
+        </p>
+
+        <h4>Why series, not just albums?</h4>
+        <p>
+          A series is how the <em>issuing authority</em> grouped its work; an
+          album is how <em>you</em> organize your collection. They&apos;re
+          different concepts. One album might contain stamps from several
+          series (an &ldquo;Early 20th Century&rdquo; album with Bureau,
+          Washington-Franklin, and Bank Note stamps). One series might span
+          several albums (you might keep your Famous Americans split across
+          themed pages by category).
+        </p>
+
+        <h4>Assigning a series</h4>
+        <p>For one stamp:</p>
+        <ol className="help-steps">
+          <li>Select the stamp in the middle pane.</li>
+          <li>Look for the <strong>Series</strong> field in the right pane (just below Country).</li>
+          <li>Click it. A small dropdown opens with a search box and a list of existing series.</li>
+          <li>Type to filter, or scroll to find the right one. Click to pick.</li>
+          <li>If the series doesn&apos;t exist yet, just type its full name. A <em>Create &ldquo;your text&rdquo;</em> row appears at the bottom of the list. Click that, and Hinged creates the series and assigns the stamp to it in one go.</li>
+        </ol>
+
+        <p>For many stamps at once:</p>
+        <ol className="help-steps">
+          <li>Select the stamps you want to assign (click + ⌘-click + ⇧-click).</li>
+          <li>Right-click any selected row.</li>
+          <li>Pick <strong>Series &rarr; Assign series&hellip;</strong></li>
+          <li>The same searchable picker appears. Pick or create a series and click <strong>Apply</strong>.</li>
+        </ol>
+
+        <Tip>
+          Series carry their own metadata — a description, a year range,
+          and a country — under <strong>Tools &rarr; Series&hellip;</strong>.
+          Filling those in is optional, but the year range will eventually
+          power smart suggestions ("this stamp from 1940 might belong to
+          Famous Americans"), so it&apos;s worth a few seconds when you
+          create a new series.
+        </Tip>
+
+        <h4>Filtering by series</h4>
+        <p>
+          The stamp-list toolbar has an <strong>All series &#x25BE;</strong>
+          dropdown next to the status filter. Pick a series from the
+          dropdown and the list shrinks to just that series. Combine with
+          the search box and the status filter for sharp questions like
+          &ldquo;which Prexies do I still need?&rdquo; or &ldquo;all my
+          mint Bureau Issues.&rdquo;
+        </p>
+
+        <h4>Managing series</h4>
+        <p>
+          <strong>Tools &rarr; Series&hellip;</strong> opens the management
+          dialog. From there you can rename a series (the change propagates
+          to every stamp using it), edit its description, country, and year
+          range, or delete it.
+        </p>
+        <p>
+          Deleting a series doesn&apos;t delete the stamps — it just clears
+          their series assignment. They stay in your collection.
+        </p>
+
+        <h4>Series and shared templates</h4>
+        <p>
+          Series travel with templates. If someone shares a Famous Americans
+          template with you, applying it creates the series in your database
+          and assigns every imported stamp to it. The structure comes through
+          intact, ready to filter on. (See the <em>Templates</em> topic.)
+        </p>
       </>
     ),
   },
@@ -643,7 +743,7 @@ const TOPICS: Topic[] = [
           aren&apos;t right.
         </p>
 
-        <p>The <strong>Catalog Number</strong> field is required. Everything else is optional.</p>
+        <p>The <strong>Catalog Number</strong> field is required. Everything else is optional, including <em>Series</em> — if your CSV has a Series column, map it and Hinged will look up each value, create the series if missing, and link every imported stamp to it.</p>
 
         <h4>Handling duplicates</h4>
         <p>
@@ -1211,6 +1311,9 @@ const TOPICS: Topic[] = [
 
           <dt>Sidebar</dt>
           <dd>The narrow left column of the window, showing smart collections and your Collections / Albums tree.</dd>
+
+          <dt>Series</dt>
+          <dd>A coherent group of stamps issued together by the same postal authority — Famous Americans, Prexies, Series of 1857–61, Machin definitives, etc. Different from an album: a series is an issuer concept, an album is a personal organization concept.</dd>
 
           <dt>Smart collection</dt>
           <dd>A view that&apos;s computed automatically based on stamp tags (e.g. All Owned, Want List). You don&apos;t add stamps to smart collections directly.</dd>
