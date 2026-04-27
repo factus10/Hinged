@@ -3,6 +3,7 @@ import { IpcChannels, RendererEvents } from '@shared/ipc-contract.js';
 import type {
   Album,
   AlbumPatchPayload,
+  AppInfo,
   AppSettings,
   Collection,
   CollectionPatchPayload,
@@ -35,6 +36,9 @@ function onEvent<T>(channel: string, cb: (payload: T) => void): () => void {
 const api = {
   diag: {
     dbPath: (): Promise<string | null> => ipcRenderer.invoke(IpcChannels.diagDbPath),
+  },
+  app: {
+    getInfo: (): Promise<AppInfo> => ipcRenderer.invoke(IpcChannels.appGetInfo),
   },
   countries: {
     list: (): Promise<Country[]> => ipcRenderer.invoke(IpcChannels.countriesList),
@@ -218,6 +222,8 @@ const api = {
       onEvent(RendererEvents.uiShowStatistics, cb),
     onShowWantListExport: (cb: () => void): (() => void) =>
       onEvent(RendererEvents.uiShowWantListExport, cb),
+    onShowAbout: (cb: () => void): (() => void) =>
+      onEvent(RendererEvents.uiShowAbout, cb),
   },
 };
 

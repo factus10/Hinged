@@ -203,6 +203,20 @@ export interface CustomCatalog {
   name: string;
 }
 
+// ---------- App info ----------
+
+export interface AppInfo {
+  name: string;
+  productName: string;
+  version: string;
+  electronVersion: string;
+  nodeVersion: string;
+  chromeVersion: string;
+  platform: NodeJS.Platform;
+  arch: string;
+  buildDate?: string;
+}
+
 // ---------- Templates ----------
 
 export interface TemplatePreview {

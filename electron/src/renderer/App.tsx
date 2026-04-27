@@ -17,6 +17,7 @@ import { SeriesManagementDialog } from './features/series/SeriesManagementDialog
 import { BulkAssignSeriesDialog } from './features/series/BulkAssignSeriesDialog';
 import { StatisticsDialog } from './features/statistics/StatisticsDialog';
 import { WantListExportDialog } from './features/want-list/WantListExportDialog';
+import { AboutDialog } from './features/about/AboutDialog';
 import type { CsvImportResult, ImportResult } from '@shared/types';
 import { qk } from './lib/query';
 import { useDialogs } from './state/dialogs';
@@ -91,6 +92,7 @@ export function App() {
       window.hinged.events.onShowGapAnalysis(() => dialogs.openGapAnalysis()),
       window.hinged.events.onShowStatistics(() => dialogs.openStatistics()),
       window.hinged.events.onShowWantListExport(() => dialogs.openWantListExport()),
+      window.hinged.events.onShowAbout(() => dialogs.openAbout()),
       window.hinged.events.onShowHelp(() => dialogs.openHelp()),
       window.hinged.events.onApplyTemplate(async () => {
         const res = await window.hinged.templates.peek();
@@ -156,6 +158,10 @@ export function App() {
       />
       <WantListExportDialog
         open={dialogs.showWantListExport}
+        onClose={() => dialogs.closeAll()}
+      />
+      <AboutDialog
+        open={dialogs.showAbout}
         onClose={() => dialogs.closeAll()}
       />
     </div>

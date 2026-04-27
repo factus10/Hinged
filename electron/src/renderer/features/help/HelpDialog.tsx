@@ -1458,7 +1458,7 @@ const TOPICS: Topic[] = [
         </p>
         <ul>
           <li>Your operating system (e.g. macOS 14, Windows 11)</li>
-          <li>The version of Hinged you&apos;re using (visible in <strong>Hinged → About</strong> on Mac, or <strong>Help → About</strong> on Windows/Linux — coming soon)</li>
+          <li>The version of Hinged you&apos;re using (visible in <strong>Hinged → About Hinged</strong> on Mac, or <strong>Help → About Hinged</strong> on Windows/Linux). Click the <strong>Copy diagnostics</strong> button in the About window to put the relevant info on your clipboard, ready to paste into the issue.</li>
           <li>What you were doing when the problem happened</li>
           <li>What you expected vs. what actually happened</li>
         </ul>

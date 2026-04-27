@@ -43,11 +43,18 @@ export default defineConfig({
       alias: {
         '@shared': resolve(__dirname, 'src/shared'),
         '@renderer': resolve(__dirname, 'src/renderer'),
+        '@resources': resolve(__dirname, 'resources'),
       },
       // Force a single React instance — otherwise TanStack Query and our
       // components end up with different copies and every hook call throws
       // "Invalid hook call".
       dedupe: ['react', 'react-dom'],
+    },
+    server: {
+      fs: {
+        // Allow imports from outside src/renderer/ (e.g. resources/icon.png).
+        allow: [resolve(__dirname)],
+      },
     },
     optimizeDeps: {
       include: ['react', 'react-dom', 'react-dom/client', '@tanstack/react-query', 'zustand'],

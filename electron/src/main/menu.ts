@@ -2,6 +2,7 @@
 // for dialogs are sent back to the renderer via the renderer-events channels.
 
 import {
+  app,
   BrowserWindow,
   Menu,
   type MenuItemConstructorOptions,
@@ -223,10 +224,42 @@ export function buildAppMenu(): void {
       accelerator: isMac ? 'Cmd+?' : 'F1',
       click: () => sendTo(focusedWin(), RendererEvents.uiShowHelp),
     },
+    // On Windows / Linux there's no app menu, so put About here too.
+    ...(isMac
+      ? []
+      : ([
+          { type: 'separator' },
+          {
+            label: 'About Hinged',
+            click: () => sendTo(focusedWin(), RendererEvents.uiShowAbout),
+          },
+        ] as MenuItemConstructorOptions[])),
   ];
 
+  // macOS app menu — built manually (instead of role: 'appMenu') so we can
+  // route the About item through our own custom dialog rather than the
+  // bare-bones system panel.
+  const appName = app.getName();
+  const macAppMenu: MenuItemConstructorOptions = {
+    label: appName,
+    submenu: [
+      {
+        label: `About ${appName}`,
+        click: () => sendTo(focusedWin(), RendererEvents.uiShowAbout),
+      },
+      { type: 'separator' },
+      { role: 'services' },
+      { type: 'separator' },
+      { role: 'hide' },
+      { role: 'hideOthers' },
+      { role: 'unhide' },
+      { type: 'separator' },
+      { role: 'quit' },
+    ],
+  };
+
   const template: MenuItemConstructorOptions[] = [
-    ...(isMac ? ([{ role: 'appMenu' }] as MenuItemConstructorOptions[]) : []),
+    ...(isMac ? [macAppMenu] : []),
     { label: 'File', submenu: fileSubmenu },
     { role: 'editMenu' },
     { label: 'Tools', submenu: toolsSubmenu },

@@ -70,6 +70,9 @@ export const IpcChannels = {
   // Dialogs
   dialogChooseDirectory: 'dialog:chooseDirectory',
 
+  // App info (used by the About dialog)
+  appGetInfo: 'app:getInfo',
+
   // Diagnostics
   diagDbPath: 'diag:dbPath',
 } as const;
@@ -95,6 +98,7 @@ export const RendererEvents = {
   uiShowSeriesManagement: 'ui:showSeriesManagement',
   uiShowStatistics: 'ui:showStatistics',
   uiShowWantListExport: 'ui:showWantListExport',
+  uiShowAbout: 'ui:showAbout',
   templateApplied: 'template:applied',
   templateExported: 'template:exported',
 } as const;

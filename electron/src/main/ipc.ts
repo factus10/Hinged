@@ -1,4 +1,4 @@
-import { BrowserWindow, dialog, ipcMain } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain } from 'electron';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { IpcChannels } from '@shared/ipc-contract.js';
 import type {
@@ -490,6 +490,18 @@ export function registerIpcHandlers(): void {
       return result;
     },
   );
+
+  // ----- App info (About dialog) -----
+  ipcMain.handle(IpcChannels.appGetInfo, () => ({
+    name: app.getName(),
+    productName: 'Hinged',
+    version: app.getVersion(),
+    electronVersion: process.versions.electron ?? '',
+    nodeVersion: process.versions.node ?? '',
+    chromeVersion: process.versions.chrome ?? '',
+    platform: process.platform,
+    arch: process.arch,
+  }));
 
   // ----- Directory picker (used by Settings for auto-backup) -----
   ipcMain.handle(IpcChannels.dialogChooseDirectory, async (e) => {
