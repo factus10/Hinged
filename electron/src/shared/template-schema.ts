@@ -29,6 +29,15 @@ const templateStampSchema = z.object({
   color: z.string().optional().default(''),
   perforationGauge: decimalLike,
   watermark: z.string().nullable().optional(),
+  /** Optional reference to a series defined in the same template. */
+  seriesName: z.string().nullable().optional(),
+});
+
+const templateSeriesSchema = z.object({
+  name: z.string(),
+  description: z.string().optional().default(''),
+  yearStart: z.number().int().nullable().optional(),
+  yearEnd: z.number().int().nullable().optional(),
 });
 
 const templateCountrySchema = z.object({
@@ -45,12 +54,15 @@ export const hingedTemplateSchema = z.object({
   createdBy: z.string().optional(),
   catalogSystemRaw: z.string(),
   country: templateCountrySchema.optional(),
+  /** Series this template references. Optional for backward compatibility. */
+  seriesList: z.array(templateSeriesSchema).optional().default([]),
   stamps: z.array(templateStampSchema),
 });
 
 export type HingedTemplate = z.infer<typeof hingedTemplateSchema>;
 export type TemplateStamp = z.infer<typeof templateStampSchema>;
 export type TemplateCountry = z.infer<typeof templateCountrySchema>;
+export type TemplateSeries = z.infer<typeof templateSeriesSchema>;
 
 /** Discriminator-only schema used to peek at unknown JSON to decide whether it's a template. */
 export const templateKindOnlySchema = z.object({

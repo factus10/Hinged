@@ -31,6 +31,16 @@ const albumBackupSchema = z.object({
   collectionId: z.string(),
 });
 
+const seriesBackupSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  description: z.string().optional().default(''),
+  countryId: z.string().nullable().optional(),
+  yearStart: z.number().int().nullable().optional(),
+  yearEnd: z.number().int().nullable().optional(),
+  createdAt: z.string(),
+});
+
 // Decimal values come across as JSON numbers from the Swift encoder.
 // Accept number or string so we can normalize to string internally.
 const decimalLike = z
@@ -61,6 +71,7 @@ const stampBackupSchema = z
     imageData: z.string().nullable().optional(),
     quantity: z.number().int().optional(),
     tradeable: z.boolean().optional(),
+    seriesId: z.string().nullable().optional(),
     createdAt: z.string(),
     updatedAt: z.string(),
     albumId: z.string(),
@@ -82,6 +93,8 @@ export const hingedBackupSchema = z.object({
   collections: z.array(collectionBackupSchema),
   albums: z.array(albumBackupSchema),
   stamps: z.array(stampBackupSchema),
+  // Series is optional so older backups (which lack it) still parse.
+  series: z.array(seriesBackupSchema).optional().default([]),
 });
 
 export type HingedBackup = z.infer<typeof hingedBackupSchema>;
@@ -89,3 +102,4 @@ export type CountryBackup = z.infer<typeof countryBackupSchema>;
 export type CollectionBackup = z.infer<typeof collectionBackupSchema>;
 export type AlbumBackup = z.infer<typeof albumBackupSchema>;
 export type StampBackup = z.infer<typeof stampBackupSchema>;
+export type SeriesBackup = z.infer<typeof seriesBackupSchema>;

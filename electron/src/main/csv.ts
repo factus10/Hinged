@@ -15,6 +15,7 @@ import { transact } from './db/connection.js';
 import { getAlbumById } from './db/repositories/albums.js';
 import { findCountryByNameCI, listCountries } from './db/repositories/countries.js';
 import { listCollections } from './db/repositories/collections.js';
+import { findSeriesByNameCI, insertSeries, listSeries } from './db/repositories/series.js';
 import { insertStamp, listStampsForAlbum, updateStamp } from './db/repositories/stamps.js';
 import type { Stamp } from '@shared/types.js';
 
@@ -24,6 +25,7 @@ const HEADER = [
   'Year',
   'Denomination',
   'Color',
+  'Series',
   'Gum Condition',
   'Centering Grade',
   'Status',
@@ -44,19 +46,16 @@ export interface CsvImportResult {
 
 export function generateCsv(db: DB, stamps: Stamp[]): string {
   const countriesById = new Map(listCountries(db).map((c) => [c.id, c]));
+  const seriesById = new Map(listSeries(db).map((s) => [s.id, s]));
   const collectionsById = new Map(listCollections(db).map((c) => [c.id, c]));
   const lines: string[] = [HEADER.join(',')];
 
   for (const s of stamps) {
-    // collectionCountry: per Swift, prefer stamp.country, else collection.country
     let countryName = '';
     if (s.countryId != null) {
       countryName = countriesById.get(s.countryId)?.name ?? '';
     }
-    if (!countryName) {
-      // Look up album → collection to find inherited country
-      // The album is not available here; fall back to empty.
-    }
+    const seriesName = s.seriesId != null ? seriesById.get(s.seriesId)?.name ?? '' : '';
     const year =
       s.yearStart == null
         ? ''
@@ -70,6 +69,7 @@ export function generateCsv(db: DB, stamps: Stamp[]): string {
       year,
       escapeCsv(s.denomination),
       escapeCsv(s.color),
+      escapeCsv(seriesName),
       s.gumConditionRaw,
       s.centeringGradeRaw,
       s.collectionStatusRaw,
@@ -128,6 +128,7 @@ export function importCsvIntoAlbum(
   const notesIdx = idx('Notes', 'notes');
   const quantityIdx = idx('Quantity', 'quantity');
   const tradeableIdx = idx('Tradeable', 'tradeable');
+  const seriesIdx = idx('Series', 'series');
 
   const existingStamps = listStampsForAlbum(db, albumId);
   const existingByCatalog = new Map<string, Stamp>();
@@ -158,6 +159,19 @@ export function importCsvIntoAlbum(
       const rawQuantity = getField(fields, quantityIdx);
       const quantity = rawQuantity ? Math.max(1, Number(rawQuantity) || 1) : 1;
       const tradeable = parseBoolean(getField(fields, tradeableIdx));
+
+      // Resolve series by name, creating if missing.
+      let seriesIdResolved: number | null = null;
+      const seriesName = getField(fields, seriesIdx);
+      if (seriesName) {
+        const existing = findSeriesByNameCI(tx, seriesName);
+        if (existing) {
+          seriesIdResolved = existing.id;
+        } else {
+          const created = insertSeries(tx, { name: seriesName, countryId: countryRow?.id ?? null });
+          seriesIdResolved = created.id;
+        }
+      }
 
       const existing = existingByCatalog.get(catalogNumber);
       if (existing) {
@@ -276,6 +290,7 @@ export const MAPPABLE_FIELDS = [
   'purchasePrice',
   'purchaseDate',
   'acquisitionSource',
+  'series',
 ] as const;
 
 export type MappableField = (typeof MAPPABLE_FIELDS)[number];
@@ -302,6 +317,7 @@ const FIELD_LABELS: Record<MappableField, string> = {
   purchasePrice: 'Purchase Price',
   purchaseDate: 'Purchase Date',
   acquisitionSource: 'Source',
+  series: 'Series',
 };
 
 export function fieldLabel(f: MappableField): string {
@@ -391,6 +407,7 @@ function guessMapping(headers: string[]): CsvFieldMapping {
   tryAssign('purchasePrice', 'price', 'purchase price', 'cost', /\bprice\b/);
   tryAssign('purchaseDate', 'purchase date', 'date', 'date acquired');
   tryAssign('acquisitionSource', 'source', 'dealer', 'acquired from');
+  tryAssign('series', 'series', 'set', /\bseries\b/);
 
   return { fields };
 }
@@ -477,6 +494,22 @@ export function importCsvWithMapping(
       const purchaseDate = dateRaw ? `${dateRaw}T00:00:00Z` : null;
       const source = get(m.acquisitionSource);
 
+      // Resolve series by name, creating if missing.
+      let seriesIdResolved: number | null = null;
+      const seriesName = get(m.series);
+      if (seriesName) {
+        const existingSeries = findSeriesByNameCI(tx, seriesName);
+        if (existingSeries) {
+          seriesIdResolved = existingSeries.id;
+        } else {
+          const created = insertSeries(tx, {
+            name: seriesName,
+            countryId: countryRow?.id ?? null,
+          });
+          seriesIdResolved = created.id;
+        }
+      }
+
       const existing = existingByCatalog.get(catalogNumber);
       if (existing) {
         if (args.duplicateAction === 'skip') {
@@ -484,10 +517,6 @@ export function importCsvWithMapping(
           continue;
         }
         if (args.duplicateAction === 'update' || args.duplicateAction === 'updateOnly') {
-          // Build a partial patch that ONLY includes fields the user mapped.
-          // Skipped fields shouldn't overwrite existing data with blanks.
-          // (For 'update', we still upsert; for 'updateOnly', we never insert
-          // — see below.)
           const patch: Parameters<typeof updateStamp>[2] = {};
           if (m.year != null) {
             patch.yearStart = yearStart;
@@ -507,6 +536,7 @@ export function importCsvWithMapping(
           if (m.purchasePrice != null) patch.purchasePrice = purchasePrice;
           if (m.purchaseDate != null) patch.purchaseDate = purchaseDate;
           if (m.acquisitionSource != null) patch.acquisitionSource = source;
+          if (m.series != null) patch.seriesId = seriesIdResolved;
           updateStamp(tx, existing.id, patch);
           result.updated += 1;
           continue;
@@ -522,6 +552,7 @@ export function importCsvWithMapping(
       insertStamp(tx, {
         albumId: args.albumId,
         countryId: countryRow?.id ?? null,
+        seriesId: seriesIdResolved,
         catalogNumber,
         yearStart,
         yearEnd,

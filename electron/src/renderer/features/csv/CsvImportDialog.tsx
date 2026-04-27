@@ -27,6 +27,7 @@ const FIELDS: ReadonlyArray<{ key: CsvMappableField; label: string; required?: b
   { key: 'status', label: 'Status' },
   { key: 'quantity', label: 'Quantity' },
   { key: 'tradeable', label: 'Tradeable' },
+  { key: 'series', label: 'Series' },
   { key: 'notes', label: 'Notes' },
   { key: 'perforationGauge', label: 'Perforation' },
   { key: 'watermark', label: 'Watermark' },

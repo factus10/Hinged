@@ -7,6 +7,7 @@ import {
   TEMPLATE_KIND,
   TEMPLATE_VERSION,
   type HingedTemplate,
+  type TemplateSeries,
   type TemplateStamp,
 } from '@shared/template-schema.js';
 import type { DB } from './db/connection.js';
@@ -21,6 +22,12 @@ import {
   insertStamp,
   listStampsForAlbum,
 } from './db/repositories/stamps.js';
+import {
+  findSeriesByNameCI,
+  getSeriesById,
+  insertSeries,
+  listSeries,
+} from './db/repositories/series.js';
 
 const APP_USER = 'hinged';
 
@@ -64,7 +71,26 @@ export function generateTemplateForAlbum(
     }
   }
 
-  const stamps = listStampsForAlbum(db, albumId).map((s): TemplateStamp => ({
+  // Collect every series the album's stamps reference
+  const albumStamps = listStampsForAlbum(db, albumId);
+  const allSeries = listSeries(db);
+  const seriesByLocalId = new Map(allSeries.map((s) => [s.id, s]));
+  const referencedIds = new Set<number>();
+  for (const s of albumStamps) {
+    if (s.seriesId != null) referencedIds.add(s.seriesId);
+  }
+
+  const seriesList: TemplateSeries[] = Array.from(referencedIds)
+    .map((id) => seriesByLocalId.get(id))
+    .filter((s): s is NonNullable<typeof s> => Boolean(s))
+    .map((s) => ({
+      name: s.name,
+      description: s.description,
+      yearStart: s.yearStart,
+      yearEnd: s.yearEnd,
+    }));
+
+  const stamps: TemplateStamp[] = albumStamps.map((s) => ({
     catalogNumber: s.catalogNumber,
     yearStart: s.yearStart,
     yearEnd: s.yearEnd,
@@ -72,6 +98,8 @@ export function generateTemplateForAlbum(
     color: s.color,
     perforationGauge: s.perforationGauge,
     watermark: s.watermark,
+    seriesName:
+      s.seriesId != null ? (seriesByLocalId.get(s.seriesId)?.name ?? null) : null,
   }));
 
   return {
@@ -83,6 +111,7 @@ export function generateTemplateForAlbum(
     createdBy: meta?.createdBy ?? APP_USER,
     catalogSystemRaw: collection.catalogSystemRaw,
     country,
+    seriesList,
     stamps,
   };
 }
@@ -195,11 +224,32 @@ export function applyTemplate(
       description: template.description,
     });
 
+    // Resolve / create every series referenced by the template
+    const seriesIdByName = new Map<string, number>();
+    for (const ts of template.seriesList ?? []) {
+      const existing = findSeriesByNameCI(tx, ts.name);
+      if (existing) {
+        seriesIdByName.set(ts.name.toLowerCase(), existing.id);
+      } else {
+        const created = insertSeries(tx, {
+          name: ts.name,
+          description: ts.description ?? '',
+          countryId,
+          yearStart: ts.yearStart ?? null,
+          yearEnd: ts.yearEnd ?? null,
+        });
+        seriesIdByName.set(ts.name.toLowerCase(), created.id);
+      }
+    }
+
     // Insert all stamps as wanted, with unspecified condition
     let stampsCreated = 0;
     for (const ts of template.stamps) {
+      const seriesId =
+        ts.seriesName ? (seriesIdByName.get(ts.seriesName.toLowerCase()) ?? null) : null;
       insertStamp(tx, {
         albumId: album.id,
+        seriesId,
         catalogNumber: ts.catalogNumber,
         yearStart: ts.yearStart ?? null,
         yearEnd: ts.yearEnd ?? null,
@@ -213,6 +263,8 @@ export function applyTemplate(
       });
       stampsCreated += 1;
     }
+
+    void getSeriesById; // reserved for future cross-references
 
     return {
       collectionId,

@@ -15,6 +15,7 @@ import { insertCountry } from './db/repositories/countries.js';
 import { insertCollection } from './db/repositories/collections.js';
 import { insertAlbum } from './db/repositories/albums.js';
 import { insertStamp, listStampsForAlbum } from './db/repositories/stamps.js';
+import { insertSeries, listSeries } from './db/repositories/series.js';
 
 const SCHEMA_SQL = readFileSync(join(__dirname, 'db', 'schema.sql'), 'utf8');
 
@@ -130,6 +131,74 @@ describe('templates', () => {
     expect(() => parseTemplateJson('{"kind":"hinged-backup"}')).toThrow(
       /not a Hinged template/,
     );
+  });
+
+  it('round-trips series — exports referenced series, recreates them on apply', () => {
+    const usa = insertCountry(db, { name: 'United States' });
+    const col = insertCollection(db, {
+      name: 'US Classics',
+      catalogSystemRaw: 'scott',
+      countryId: usa.id,
+    });
+    const album = insertAlbum(db, { collectionId: col.id, name: 'Famous Americans' });
+    const series = insertSeries(db, {
+      name: 'Famous Americans',
+      yearStart: 1940,
+      yearEnd: 1940,
+      countryId: usa.id,
+    });
+    insertStamp(db, {
+      albumId: album.id,
+      seriesId: series.id,
+      catalogNumber: '859',
+      yearStart: 1940,
+      denomination: '1c',
+      color: 'green',
+      gumConditionRaw: 'unspecified',
+      centeringGradeRaw: 'unspecified',
+      collectionStatusRaw: 'wanted',
+    });
+    insertStamp(db, {
+      albumId: album.id,
+      seriesId: series.id,
+      catalogNumber: '860',
+      yearStart: 1940,
+      denomination: '2c',
+      color: 'rose',
+      gumConditionRaw: 'unspecified',
+      centeringGradeRaw: 'unspecified',
+      collectionStatusRaw: 'wanted',
+    });
+
+    const tpl = generateTemplateForAlbum(db, album.id);
+    expect(tpl.seriesList).toHaveLength(1);
+    expect(tpl.seriesList?.[0]?.name).toBe('Famous Americans');
+    expect(tpl.stamps.every((s) => s.seriesName === 'Famous Americans')).toBe(true);
+
+    const json = templateToJson(tpl);
+    const parsed = parseTemplateJson(json);
+
+    const fresh = makeTempDb();
+    try {
+      const result = applyTemplate(fresh.db, parsed, {
+        targetCollectionId: null,
+        albumName: 'Imported',
+      });
+      expect(result.stampsCreated).toBe(2);
+
+      // Series was created in the fresh DB
+      const allSeries = listSeries(fresh.db);
+      expect(allSeries.find((s) => s.name === 'Famous Americans')).toBeTruthy();
+
+      const stamps = listStampsForAlbum(fresh.db, result.albumId);
+      const targetSeries = allSeries.find((s) => s.name === 'Famous Americans')!;
+      for (const s of stamps) {
+        expect(s.seriesId).toBe(targetSeries.id);
+      }
+    } finally {
+      fresh.db.close();
+      rmSync(fresh.dir, { recursive: true, force: true });
+    }
   });
 
   it('matches existing country by case-insensitive name on apply', () => {

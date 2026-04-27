@@ -16,6 +16,7 @@ import {
   type CollectionBackup,
   type CountryBackup,
   type HingedBackup,
+  type SeriesBackup,
   type StampBackup,
 } from '@shared/backup-schema.js';
 import type { ImportMode, ImportResult } from '@shared/types.js';
@@ -35,6 +36,7 @@ import {
 } from './db/repositories/collections.js';
 import { insertAlbum, listAlbums } from './db/repositories/albums.js';
 import { insertStamp, listStamps, deleteAllStamps } from './db/repositories/stamps.js';
+import { insertSeries, listSeries } from './db/repositories/series.js';
 import {
   detectExtension,
   generateFilename,
@@ -51,11 +53,13 @@ export function createBackup(db: DB): HingedBackup {
   const collections = listCollections(db);
   const albums = listAlbums(db);
   const stamps = listStamps(db);
+  const series = listSeries(db);
 
   // Stable backup-scoped IDs (the Swift exporter mints fresh UUIDs too).
   const countryBackupId = new Map<number, string>();
   const collectionBackupId = new Map<number, string>();
   const albumBackupId = new Map<number, string>();
+  const seriesBackupId = new Map<number, string>();
 
   const countryBackups: CountryBackup[] = countries.map((c) => {
     const id = randomUUID();
@@ -93,6 +97,20 @@ export function createBackup(db: DB): HingedBackup {
     });
   }
 
+  const seriesBackups: SeriesBackup[] = series.map((s) => {
+    const id = randomUUID();
+    seriesBackupId.set(s.id, id);
+    return {
+      id,
+      name: s.name,
+      description: s.description,
+      countryId: s.countryId != null ? (countryBackupId.get(s.countryId) ?? null) : null,
+      yearStart: s.yearStart,
+      yearEnd: s.yearEnd,
+      createdAt: s.createdAt,
+    };
+  });
+
   const stampBackups: StampBackup[] = [];
   for (const s of stamps) {
     const albumId = albumBackupId.get(s.albumId);
@@ -124,6 +142,7 @@ export function createBackup(db: DB): HingedBackup {
       imageData,
       quantity: s.quantity,
       tradeable: s.tradeable,
+      seriesId: s.seriesId != null ? (seriesBackupId.get(s.seriesId) ?? null) : null,
       createdAt: s.createdAt,
       updatedAt: s.updatedAt,
       albumId,
@@ -139,6 +158,7 @@ export function createBackup(db: DB): HingedBackup {
     collections: collectionBackups,
     albums: albumBackups,
     stamps: stampBackups,
+    series: seriesBackups,
   };
 }
 
@@ -184,6 +204,7 @@ export function restoreBackup(db: DB, backup: HingedBackup, mode: ImportMode): I
     const countryMap = new Map<string, number>();
     const collectionMap = new Map<string, number>();
     const albumMap = new Map<string, number>();
+    const seriesMap = new Map<string, number>();
 
     // Merge mode: pre-populate countryMap with existing countries matched by
     // case-insensitive name (same rule as BackupManager.restoreBackup).
@@ -252,6 +273,19 @@ export function restoreBackup(db: DB, backup: HingedBackup, mode: ImportMode): I
       result.albumsImported += 1;
     }
 
+    // Series — replay them after countries (which they may reference)
+    for (const sb of backup.series ?? []) {
+      const created = insertSeries(tx, {
+        name: sb.name,
+        description: sb.description,
+        countryId: sb.countryId ? (countryMap.get(sb.countryId) ?? null) : null,
+        yearStart: sb.yearStart ?? null,
+        yearEnd: sb.yearEnd ?? null,
+        createdAt: sb.createdAt,
+      });
+      seriesMap.set(sb.id, created.id);
+    }
+
     // Stamps
     for (const bs of backup.stamps) {
       const albumId = albumMap.get(bs.albumId);
@@ -275,6 +309,7 @@ export function restoreBackup(db: DB, backup: HingedBackup, mode: ImportMode): I
       insertStamp(tx, {
         albumId,
         countryId: bs.countryId ? (countryMap.get(bs.countryId) ?? null) : null,
+        seriesId: bs.seriesId ? (seriesMap.get(bs.seriesId) ?? null) : null,
         catalogNumber: bs.catalogNumber,
         yearStart: bs.yearStart ?? null,
         yearEnd: bs.yearEnd ?? null,
@@ -364,10 +399,20 @@ function serializeForSwift(backup: HingedBackup): unknown {
       imageData: s.imageData ?? null,
       quantity: s.quantity ?? 1,
       tradeable: s.tradeable ?? false,
+      seriesId: s.seriesId ?? null,
       createdAt: s.createdAt,
       updatedAt: s.updatedAt,
       albumId: s.albumId,
       countryId: s.countryId ?? null,
+    })),
+    series: (backup.series ?? []).map((s) => ({
+      id: s.id,
+      name: s.name,
+      description: s.description ?? '',
+      countryId: s.countryId ?? null,
+      yearStart: s.yearStart ?? null,
+      yearEnd: s.yearEnd ?? null,
+      createdAt: s.createdAt,
     })),
   };
 }
