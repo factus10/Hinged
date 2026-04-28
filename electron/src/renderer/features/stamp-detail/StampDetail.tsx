@@ -385,7 +385,7 @@ export function StampDetail() {
             </Select>
           </Field>
 
-          <Field label="Series" hint="e.g. Famous Americans, Prexies, Liberty">
+          <Field label="Series" hint="e.g. Famous Americans, Prexies, Liberty" wide>
             <SeriesPicker
               value={stamp.seriesId}
               onChange={(id) => commit({ seriesId: id })}
