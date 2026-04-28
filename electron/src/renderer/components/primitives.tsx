@@ -43,10 +43,11 @@ interface FieldProps {
   label: string;
   children: ReactNode;
   hint?: string;
+  wide?: boolean;
 }
-export function Field({ label, children, hint }: FieldProps) {
+export function Field({ label, children, hint, wide }: FieldProps) {
   return (
-    <label className="field">
+    <label className={`field${wide ? ' field-wide' : ''}`}>
       <span className="field-label">{label}</span>
       {children}
       {hint && <span className="field-hint">{hint}</span>}

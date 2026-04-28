@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import {
   useAlbums,
   useCollections,
@@ -116,6 +116,40 @@ export function StampDetail() {
     );
   }, [stamps, trashedStamps, focusedStampId]);
 
+  // *** Hooks must be called unconditionally on every render, BEFORE any early
+  // return — otherwise React throws minified error #300 ("rendered fewer hooks
+  // than expected") when the bulk-selection branch is taken. See issue #1. ***
+  const [draft, setDraft] = useState<Draft>(emptyDraft);
+  useEffect(() => {
+    setDraft(stamp ? fromStamp(stamp) : emptyDraft);
+  }, [stamp?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Enter-advances-to-next-field: when the user hits Return in a single-line
+  // input or a select, blur it (which triggers the autosave commit) and move
+  // focus to the next focusable form control inside the panel. Textareas keep
+  // their normal newline behaviour.
+  const formRef = useRef<HTMLFormElement>(null);
+  const handleEnterAdvance = (e: KeyboardEvent<HTMLFormElement>) => {
+    if (e.key !== 'Enter' || e.shiftKey || e.metaKey || e.ctrlKey || e.altKey) return;
+    const target = e.target as HTMLElement;
+    const tag = target.tagName;
+    if (tag === 'TEXTAREA' || tag === 'BUTTON') return;
+    if (tag !== 'INPUT' && tag !== 'SELECT') return;
+    if (tag === 'INPUT' && (target as HTMLInputElement).type === 'checkbox') return;
+    e.preventDefault();
+    const root = formRef.current;
+    if (!root) return;
+    const focusables = Array.from(
+      root.querySelectorAll<HTMLElement>('input, select, textarea, button'),
+    ).filter((el) => !el.hasAttribute('disabled') && el.tabIndex !== -1);
+    const idx = focusables.indexOf(target);
+    if (idx === -1) return;
+    // Blur first so onBlur autosave runs before focus moves.
+    target.blur();
+    const next = focusables[idx + 1];
+    if (next) next.focus();
+  };
+
   // When >1 selected, show a bulk placeholder instead of per-stamp edit.
   if (selectedStampIds.size > 1) {
     return (
@@ -133,11 +167,6 @@ export function StampDetail() {
       </section>
     );
   }
-
-  const [draft, setDraft] = useState<Draft>(emptyDraft);
-  useEffect(() => {
-    setDraft(stamp ? fromStamp(stamp) : emptyDraft);
-  }, [stamp?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!stamp) {
     return (
@@ -202,275 +231,281 @@ export function StampDetail() {
         <h2>{stamp.catalogNumber || '(untitled stamp)'}</h2>
       </div>
 
-      <div className="detail-grid">
-        <Field label="Catalog Number">
-          <Input
-            value={draft.catalogNumber}
-            onChange={(e) => setDraft({ ...draft, catalogNumber: e.target.value })}
-            onBlur={() =>
-              commitIfChanged('catalogNumber', { catalogNumber: draft.catalogNumber })
-            }
-          />
-        </Field>
-
-        <Field label="Status">
-          <Select
-            value={draft.collectionStatusRaw}
-            onChange={(e) => {
-              const v = e.target.value;
-              setDraft({ ...draft, collectionStatusRaw: v });
-              commit({ collectionStatusRaw: v });
-            }}
-          >
-            {collectionStatuses.map((s) => (
-              <option key={s.value} value={s.value}>
-                {s.label}
-              </option>
-            ))}
-          </Select>
-        </Field>
-
-        <Field label="Year Start">
-          <Input
-            type="number"
-            value={draft.yearStart}
-            onChange={(e) => setDraft({ ...draft, yearStart: e.target.value })}
-            onBlur={() =>
-              commitIfChanged('yearStart', {
-                yearStart: draft.yearStart ? Number(draft.yearStart) : null,
-              })
-            }
-          />
-        </Field>
-
-        <Field label="Year End">
-          <Input
-            type="number"
-            value={draft.yearEnd}
-            onChange={(e) => setDraft({ ...draft, yearEnd: e.target.value })}
-            onBlur={() =>
-              commitIfChanged('yearEnd', {
-                yearEnd: draft.yearEnd ? Number(draft.yearEnd) : null,
-              })
-            }
-          />
-        </Field>
-
-        <Field label="Denomination">
-          <Input
-            value={draft.denomination}
-            onChange={(e) => setDraft({ ...draft, denomination: e.target.value })}
-            onBlur={() => commitIfChanged('denomination', { denomination: draft.denomination })}
-          />
-        </Field>
-
-        <Field label="Color">
-          <Input
-            value={draft.color}
-            onChange={(e) => setDraft({ ...draft, color: e.target.value })}
-            onBlur={() => commitIfChanged('color', { color: draft.color })}
-          />
-        </Field>
-
-        <Field label="Perforation">
-          <Input
-            value={draft.perforationGauge}
-            onChange={(e) => setDraft({ ...draft, perforationGauge: e.target.value })}
-            onBlur={() =>
-              commitIfChanged('perforationGauge', {
-                perforationGauge: draft.perforationGauge || null,
-              })
-            }
-          />
-        </Field>
-
-        <Field label="Watermark">
-          <Input
-            value={draft.watermark}
-            onChange={(e) => setDraft({ ...draft, watermark: e.target.value })}
-            onBlur={() => commitIfChanged('watermark', { watermark: draft.watermark || null })}
-          />
-        </Field>
-
-        <Field label="Gum Condition">
-          <Select
-            value={draft.gumConditionRaw}
-            onChange={(e) => {
-              const v = e.target.value;
-              setDraft({ ...draft, gumConditionRaw: v });
-              commit({ gumConditionRaw: v });
-            }}
-          >
-            {gumConditions.map((g) => (
-              <option key={g.value} value={g.value}>
-                {g.label}
-              </option>
-            ))}
-          </Select>
-        </Field>
-
-        <Field label="Centering">
-          <Select
-            value={draft.centeringGradeRaw}
-            onChange={(e) => {
-              const v = e.target.value;
-              setDraft({ ...draft, centeringGradeRaw: v });
-              commit({ centeringGradeRaw: v });
-            }}
-          >
-            {centeringGrades.map((c) => (
-              <option key={c.value} value={c.value}>
-                {c.label}
-              </option>
-            ))}
-          </Select>
-        </Field>
-
-        <Field label="Country" hint="Per-stamp override, usually inherited from collection">
-          <Select
-            value={draft.countryId}
-            onChange={(e) => {
-              const v = e.target.value;
-              setDraft({ ...draft, countryId: v });
-              commit({ countryId: v ? Number(v) : null });
-            }}
-          >
-            <option value="">— Inherit from collection —</option>
-            {countries.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </Select>
-        </Field>
-
-        <Field label="Series" hint="e.g. Famous Americans, Prexies, Liberty">
-          <SeriesPicker
-            value={stamp.seriesId}
-            onChange={(id) => commit({ seriesId: id })}
-            defaultCountryId={collection?.countryId ?? stamp.countryId ?? null}
-          />
-        </Field>
-
-        <Field label={`Purchase Price (${currency})`}>
-          <Input
-            value={draft.purchasePrice}
-            onChange={(e) => setDraft({ ...draft, purchasePrice: e.target.value })}
-            onBlur={() =>
-              commitIfChanged('purchasePrice', {
-                purchasePrice: draft.purchasePrice || null,
-              })
-            }
-            placeholder="e.g. 12.50"
-          />
-        </Field>
-
-        <Field label="Purchase Date">
-          <Input
-            type="date"
-            value={draft.purchaseDate}
-            onChange={(e) => setDraft({ ...draft, purchaseDate: e.target.value })}
-            onBlur={() =>
-              commitIfChanged('purchaseDate', {
-                purchaseDate: draft.purchaseDate
-                  ? `${draft.purchaseDate}T00:00:00Z`
-                  : null,
-              })
-            }
-          />
-        </Field>
-
-        <Field label="Source">
-          <Input
-            value={draft.acquisitionSource}
-            onChange={(e) => setDraft({ ...draft, acquisitionSource: e.target.value })}
-            onBlur={() =>
-              commitIfChanged('acquisitionSource', { acquisitionSource: draft.acquisitionSource })
-            }
-          />
-        </Field>
-
-        <Field label="Quantity" hint="Set above 1 to track duplicates">
-          <Input
-            type="number"
-            min={1}
-            value={draft.quantity}
-            onChange={(e) => setDraft({ ...draft, quantity: e.target.value })}
-            onBlur={() => {
-              const n = Math.max(1, Number(draft.quantity) || 1);
-              if (n !== stamp.quantity) commit({ quantity: n });
-            }}
-          />
-        </Field>
-
-        <Field label="Tradeable">
-          <label className="checkbox-row">
-            <input
-              type="checkbox"
-              checked={draft.tradeable}
-              onChange={(e) => {
-                setDraft({ ...draft, tradeable: e.target.checked });
-                commit({ tradeable: e.target.checked });
-              }}
-            />
-            <span className="subtle small">Show in Trading Stock smart collection</span>
-          </label>
-        </Field>
-      </div>
-
-      <Field label="Notes">
-        <Textarea
-          rows={3}
-          value={draft.notes}
-          onChange={(e) => setDraft({ ...draft, notes: e.target.value })}
-          onBlur={() => commitIfChanged('notes', { notes: draft.notes })}
-        />
-      </Field>
-
-      <details className="cert-section" open={Boolean(stamp.certNumber || stamp.certIssuer || stamp.certDate)}>
-        <summary>Certification &amp; provenance</summary>
-        <div className="detail-grid" style={{ marginTop: '0.5rem' }}>
-          <Field label="Cert Number">
-            <Input
-              value={draft.certNumber}
-              onChange={(e) => setDraft({ ...draft, certNumber: e.target.value })}
-              onBlur={() =>
-                commitIfChanged('certNumber', { certNumber: draft.certNumber || null })
-              }
-              placeholder="e.g. 612345"
-            />
-          </Field>
-          <Field label="Issuer">
-            <Input
-              value={draft.certIssuer}
-              onChange={(e) => setDraft({ ...draft, certIssuer: e.target.value })}
-              onBlur={() =>
-                commitIfChanged('certIssuer', { certIssuer: draft.certIssuer || null })
-              }
-              placeholder="e.g. PF, APEX, PSAG, BPA"
-            />
-          </Field>
-          <Field label="Cert Date">
-            <Input
-              type="date"
-              value={draft.certDate}
-              onChange={(e) => setDraft({ ...draft, certDate: e.target.value })}
-              onBlur={() =>
-                commitIfChanged('certDate', {
-                  certDate: draft.certDate ? `${draft.certDate}T00:00:00Z` : null,
-                })
-              }
-            />
-          </Field>
-        </div>
-      </details>
-
-      <Field label="Image">
+      <div className="detail-image">
         <StampImage
           filename={stamp.imageFilename}
           onChange={(filename) => commit({ imageFilename: filename })}
         />
-      </Field>
+      </div>
+
+      <form
+        ref={formRef}
+        onSubmit={(e) => e.preventDefault()}
+        onKeyDown={handleEnterAdvance}
+      >
+        <div className="detail-grid">
+          <Field label="Catalog Number">
+            <Input
+              value={draft.catalogNumber}
+              onChange={(e) => setDraft({ ...draft, catalogNumber: e.target.value })}
+              onBlur={() =>
+                commitIfChanged('catalogNumber', { catalogNumber: draft.catalogNumber })
+              }
+            />
+          </Field>
+
+          <Field label="Status">
+            <Select
+              value={draft.collectionStatusRaw}
+              onChange={(e) => {
+                const v = e.target.value;
+                setDraft({ ...draft, collectionStatusRaw: v });
+                commit({ collectionStatusRaw: v });
+              }}
+            >
+              {collectionStatuses.map((s) => (
+                <option key={s.value} value={s.value}>
+                  {s.label}
+                </option>
+              ))}
+            </Select>
+          </Field>
+
+          <Field label="Denomination" wide>
+            <Input
+              value={draft.denomination}
+              onChange={(e) => setDraft({ ...draft, denomination: e.target.value })}
+              onBlur={() => commitIfChanged('denomination', { denomination: draft.denomination })}
+            />
+          </Field>
+
+          <Field label="Year Start">
+            <Input
+              type="number"
+              value={draft.yearStart}
+              onChange={(e) => setDraft({ ...draft, yearStart: e.target.value })}
+              onBlur={() =>
+                commitIfChanged('yearStart', {
+                  yearStart: draft.yearStart ? Number(draft.yearStart) : null,
+                })
+              }
+            />
+          </Field>
+
+          <Field label="Year End">
+            <Input
+              type="number"
+              value={draft.yearEnd}
+              onChange={(e) => setDraft({ ...draft, yearEnd: e.target.value })}
+              onBlur={() =>
+                commitIfChanged('yearEnd', {
+                  yearEnd: draft.yearEnd ? Number(draft.yearEnd) : null,
+                })
+              }
+            />
+          </Field>
+
+          <Field label="Color">
+            <Input
+              value={draft.color}
+              onChange={(e) => setDraft({ ...draft, color: e.target.value })}
+              onBlur={() => commitIfChanged('color', { color: draft.color })}
+            />
+          </Field>
+
+          <Field label="Perforation">
+            <Input
+              value={draft.perforationGauge}
+              onChange={(e) => setDraft({ ...draft, perforationGauge: e.target.value })}
+              onBlur={() =>
+                commitIfChanged('perforationGauge', {
+                  perforationGauge: draft.perforationGauge || null,
+                })
+              }
+            />
+          </Field>
+
+          <Field label="Watermark">
+            <Input
+              value={draft.watermark}
+              onChange={(e) => setDraft({ ...draft, watermark: e.target.value })}
+              onBlur={() => commitIfChanged('watermark', { watermark: draft.watermark || null })}
+            />
+          </Field>
+
+          <Field label="Gum Condition">
+            <Select
+              value={draft.gumConditionRaw}
+              onChange={(e) => {
+                const v = e.target.value;
+                setDraft({ ...draft, gumConditionRaw: v });
+                commit({ gumConditionRaw: v });
+              }}
+            >
+              {gumConditions.map((g) => (
+                <option key={g.value} value={g.value}>
+                  {g.label}
+                </option>
+              ))}
+            </Select>
+          </Field>
+
+          <Field label="Centering">
+            <Select
+              value={draft.centeringGradeRaw}
+              onChange={(e) => {
+                const v = e.target.value;
+                setDraft({ ...draft, centeringGradeRaw: v });
+                commit({ centeringGradeRaw: v });
+              }}
+            >
+              {centeringGrades.map((c) => (
+                <option key={c.value} value={c.value}>
+                  {c.label}
+                </option>
+              ))}
+            </Select>
+          </Field>
+
+          <Field label="Country" hint="Per-stamp override, usually inherited from collection">
+            <Select
+              value={draft.countryId}
+              onChange={(e) => {
+                const v = e.target.value;
+                setDraft({ ...draft, countryId: v });
+                commit({ countryId: v ? Number(v) : null });
+              }}
+            >
+              <option value="">— Inherit from collection —</option>
+              {countries.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </Select>
+          </Field>
+
+          <Field label="Series" hint="e.g. Famous Americans, Prexies, Liberty">
+            <SeriesPicker
+              value={stamp.seriesId}
+              onChange={(id) => commit({ seriesId: id })}
+              defaultCountryId={collection?.countryId ?? stamp.countryId ?? null}
+            />
+          </Field>
+
+          <Field label={`Purchase Price (${currency})`}>
+            <Input
+              value={draft.purchasePrice}
+              onChange={(e) => setDraft({ ...draft, purchasePrice: e.target.value })}
+              onBlur={() =>
+                commitIfChanged('purchasePrice', {
+                  purchasePrice: draft.purchasePrice || null,
+                })
+              }
+              placeholder="e.g. 12.50"
+            />
+          </Field>
+
+          <Field label="Purchase Date">
+            <Input
+              type="date"
+              value={draft.purchaseDate}
+              onChange={(e) => setDraft({ ...draft, purchaseDate: e.target.value })}
+              onBlur={() =>
+                commitIfChanged('purchaseDate', {
+                  purchaseDate: draft.purchaseDate
+                    ? `${draft.purchaseDate}T00:00:00Z`
+                    : null,
+                })
+              }
+            />
+          </Field>
+
+          <Field label="Source" wide>
+            <Input
+              value={draft.acquisitionSource}
+              onChange={(e) => setDraft({ ...draft, acquisitionSource: e.target.value })}
+              onBlur={() =>
+                commitIfChanged('acquisitionSource', { acquisitionSource: draft.acquisitionSource })
+              }
+            />
+          </Field>
+
+          <Field label="Quantity" hint="Set above 1 to track duplicates">
+            <Input
+              type="number"
+              min={1}
+              value={draft.quantity}
+              onChange={(e) => setDraft({ ...draft, quantity: e.target.value })}
+              onBlur={() => {
+                const n = Math.max(1, Number(draft.quantity) || 1);
+                if (n !== stamp.quantity) commit({ quantity: n });
+              }}
+            />
+          </Field>
+
+          <Field label="Tradeable" wide>
+            <label className="checkbox-row">
+              <input
+                type="checkbox"
+                checked={draft.tradeable}
+                onChange={(e) => {
+                  setDraft({ ...draft, tradeable: e.target.checked });
+                  commit({ tradeable: e.target.checked });
+                }}
+              />
+              <span className="subtle small">Show in Trading Stock smart collection</span>
+            </label>
+          </Field>
+        </div>
+
+        <Field label="Notes">
+          <Textarea
+            rows={3}
+            value={draft.notes}
+            onChange={(e) => setDraft({ ...draft, notes: e.target.value })}
+            onBlur={() => commitIfChanged('notes', { notes: draft.notes })}
+          />
+        </Field>
+
+        <details className="cert-section" open={Boolean(stamp.certNumber || stamp.certIssuer || stamp.certDate)}>
+          <summary>Certification &amp; provenance</summary>
+          <div className="detail-grid" style={{ marginTop: '0.5rem' }}>
+            <Field label="Cert Number">
+              <Input
+                value={draft.certNumber}
+                onChange={(e) => setDraft({ ...draft, certNumber: e.target.value })}
+                onBlur={() =>
+                  commitIfChanged('certNumber', { certNumber: draft.certNumber || null })
+                }
+                placeholder="e.g. 612345"
+              />
+            </Field>
+            <Field label="Issuer">
+              <Input
+                value={draft.certIssuer}
+                onChange={(e) => setDraft({ ...draft, certIssuer: e.target.value })}
+                onBlur={() =>
+                  commitIfChanged('certIssuer', { certIssuer: draft.certIssuer || null })
+                }
+                placeholder="e.g. PF, APEX, PSAG, BPA"
+              />
+            </Field>
+            <Field label="Cert Date">
+              <Input
+                type="date"
+                value={draft.certDate}
+                onChange={(e) => setDraft({ ...draft, certDate: e.target.value })}
+                onBlur={() =>
+                  commitIfChanged('certDate', {
+                    certDate: draft.certDate ? `${draft.certDate}T00:00:00Z` : null,
+                  })
+                }
+              />
+            </Field>
+          </div>
+        </details>
+      </form>
     </section>
   );
 }

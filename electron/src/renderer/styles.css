@@ -668,6 +668,15 @@ tr.selected .status-chip {
   gap: 0.2rem;
 }
 
+.field-wide {
+  grid-column: 1 / -1;
+}
+
+/* Detail-image goes at the top of the panel, above the grid. */
+.detail-image {
+  margin: 0 0 0.9rem;
+}
+
 .field-label {
   font-size: 10px;
   font-weight: 600;
