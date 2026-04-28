@@ -653,6 +653,32 @@ tr.selected .status-chip {
   word-break: break-word;
 }
 
+/* Two-part title: catalog number + denomination, separated by an em-dash.
+   Catalog # stays at full size; denomination shrinks slightly and truncates
+   with an ellipsis if the panel is narrow. */
+.detail-title {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5em;
+  min-width: 0;
+}
+.detail-title-cat {
+  flex: 0 0 auto;
+}
+.detail-title-denom {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-weight: 600;
+  font-size: 16px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.detail-title-denom::before {
+  content: "— ";
+  margin-right: 0.05em;
+}
+
 .detail-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;

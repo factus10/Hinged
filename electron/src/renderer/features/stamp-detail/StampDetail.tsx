@@ -228,7 +228,12 @@ export function StampDetail() {
             </span>
           )}
         </div>
-        <h2>{stamp.catalogNumber || '(untitled stamp)'}</h2>
+        <h2 className="detail-title" title={[stamp.catalogNumber, stamp.denomination].filter(Boolean).join(' — ') || '(untitled stamp)'}>
+          <span className="detail-title-cat">{stamp.catalogNumber || '(untitled stamp)'}</span>
+          {stamp.denomination && (
+            <span className="detail-title-denom">{stamp.denomination}</span>
+          )}
+        </h2>
       </div>
 
       <div className="detail-image">
