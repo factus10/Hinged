@@ -369,9 +369,31 @@ const TOPICS: Topic[] = [
           situations:
         </p>
         <ul>
-          <li>For text fields (catalog number, color, notes, etc.) — when you click somewhere else, or when you press <kbd>Tab</kbd> to move to the next field</li>
+          <li>For text fields (catalog number, color, notes, etc.) — when you click somewhere else, or when you press <kbd>Tab</kbd> or <kbd>Return</kbd> to move to the next field</li>
           <li>For dropdowns and checkboxes — immediately, the moment you change the value</li>
         </ul>
+
+        <h4>Editing right in the table</h4>
+        <p>
+          For quick fixes you don&apos;t need the side panel at all. In the
+          stamp list, <strong>double-click</strong> on a Catalog #, Year,
+          Denomination, or Color cell to edit it in place.
+          <kbd>Return</kbd> commits, <kbd>Esc</kbd> cancels, clicking
+          elsewhere also commits. The other columns (Status, Cond.,
+          Series, Qty) live in the side panel — they have richer pickers
+          there.
+        </p>
+
+        <h4>Searching Google for stamp details</h4>
+        <p>
+          The <strong>🔍 Search Google</strong> button at the top of the
+          side panel opens your default browser with a query built from
+          the stamp&apos;s catalog number, country, denomination, and year.
+          Useful when you need to look up the design, the issue date, or
+          a denomination spelled out in full. Highlight what you want in
+          the browser, copy it, switch back to Hinged, click in the
+          field, and paste with <kbd>⌘V</kbd> / <kbd>Ctrl+V</kbd>.
+        </p>
 
         <h4>The fields, briefly</h4>
         <ul>

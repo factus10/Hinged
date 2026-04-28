@@ -21,10 +21,12 @@ import {
   useSettings,
   useStamps,
   useTrashedStamps,
+  useUpdateStamp,
 } from '@renderer/lib/api';
 import { useSelection } from '@renderer/state/selection';
 import { useDialogs } from '@renderer/state/dialogs';
 import { Button, Input, Select } from '@renderer/components/primitives';
+import { EditableCell } from '@renderer/components/EditableCell';
 import type { Album, Collection, Country, Stamp, StampPatchPayload } from '@shared/types';
 import {
   centeringGradeShorthand,
@@ -249,29 +251,6 @@ function stampsToTsv(
   return lines.join('\n');
 }
 
-function displayCatalogNumber(
-  stamp: Stamp,
-  albumsById: Map<number, Album>,
-  collectionsById: Map<number, Collection>,
-  countriesById: Map<number, Country>,
-): string {
-  const album = albumsById.get(stamp.albumId);
-  const collection = album ? collectionsById.get(album.collectionId) : null;
-  const countryId = collection?.countryId ?? stamp.countryId ?? null;
-  const country = countryId != null ? countriesById.get(countryId) : null;
-  const sys = collection?.catalogSystemRaw ?? 'scott';
-  const prefix = country?.catalogPrefixes?.[sys] ?? '';
-  return prefix ? `${prefix} ${stamp.catalogNumber}` : stamp.catalogNumber;
-}
-
-function displayYear(stamp: Stamp): string {
-  if (stamp.yearStart == null) return '';
-  if (stamp.yearEnd != null && stamp.yearEnd !== stamp.yearStart) {
-    return `${stamp.yearStart}–${stamp.yearEnd}`;
-  }
-  return String(stamp.yearStart);
-}
-
 export function StampList() {
   const {
     selection,
@@ -294,6 +273,7 @@ export function StampList() {
   const { data: settings } = useSettings();
 
   const createStamp = useCreateStamp();
+  const updateStamp = useUpdateStamp();
   const deleteStamp = useDeleteStamp();
   const bulkUpdate = useBulkUpdateStamps();
   const bulkDelete = useBulkDeleteStamps();
@@ -768,11 +748,60 @@ export function StampList() {
                     onContextMenu={(e) => onContextMenu(e, s)}
                   >
                     <td className="mono">
-                      {displayCatalogNumber(s, albumsById, collectionsById, countriesById) || '—'}
+                      {(() => {
+                        const album = albumsById.get(s.albumId);
+                        const collection = album ? collectionsById.get(album.collectionId) : null;
+                        const countryId = collection?.countryId ?? s.countryId ?? null;
+                        const country = countryId != null ? countriesById.get(countryId) : null;
+                        const sys = collection?.catalogSystemRaw ?? 'scott';
+                        const prefix = country?.catalogPrefixes?.[sys] ?? '';
+                        return (
+                          <>
+                            {prefix && <span className="catalog-prefix">{prefix} </span>}
+                            <EditableCell
+                              value={s.catalogNumber}
+                              onCommit={(next) =>
+                                updateStamp.mutate({ id: s.id, patch: { catalogNumber: next } })
+                              }
+                            />
+                          </>
+                        );
+                      })()}
                     </td>
-                    <td>{displayYear(s)}</td>
-                    <td>{s.denomination}</td>
-                    <td>{s.color}</td>
+                    <td>
+                      <EditableCell
+                        value={s.yearStart != null ? String(s.yearStart) : ''}
+                        type="number"
+                        emptyText={s.yearEnd != null ? `–${s.yearEnd}` : '—'}
+                        onCommit={(next) =>
+                          updateStamp.mutate({
+                            id: s.id,
+                            patch: { yearStart: next === '' ? null : Number(next) },
+                          })
+                        }
+                      />
+                      {s.yearStart != null && s.yearEnd != null && s.yearEnd !== s.yearStart && (
+                        <span className="subtle">–{s.yearEnd}</span>
+                      )}
+                    </td>
+                    <td>
+                      <EditableCell
+                        value={s.denomination}
+                        emptyText=""
+                        onCommit={(next) =>
+                          updateStamp.mutate({ id: s.id, patch: { denomination: next } })
+                        }
+                      />
+                    </td>
+                    <td>
+                      <EditableCell
+                        value={s.color}
+                        emptyText=""
+                        onCommit={(next) =>
+                          updateStamp.mutate({ id: s.id, patch: { color: next } })
+                        }
+                      />
+                    </td>
                     <td className="series-cell subtle small">
                       {s.seriesId != null ? seriesById.get(s.seriesId)?.name ?? '' : ''}
                     </td>

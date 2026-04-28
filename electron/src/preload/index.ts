@@ -40,6 +40,10 @@ const api = {
   app: {
     getInfo: (): Promise<AppInfo> => ipcRenderer.invoke(IpcChannels.appGetInfo),
   },
+  search: {
+    open: (url: string): Promise<{ ok: true } | { ok: false; error?: string }> =>
+      ipcRenderer.invoke(IpcChannels.searchOpen, url),
+  },
   countries: {
     list: (): Promise<Country[]> => ipcRenderer.invoke(IpcChannels.countriesList),
     create: (input: NewCountryPayload): Promise<Country> =>

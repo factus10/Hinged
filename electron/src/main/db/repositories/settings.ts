@@ -11,6 +11,7 @@ const DEFAULTS: AppSettings = {
   currencySymbol: '$',
   autoBackupDir: '',
   autoBackupKeep: '5',
+  searchInApp: 'true',
 };
 
 export function getAllSettings(db: DB): AppSettings {
@@ -32,6 +33,7 @@ export function getAllSettings(db: DB): AppSettings {
     currencySymbol: record.currencySymbol ?? DEFAULTS.currencySymbol,
     autoBackupDir: record.autoBackupDir ?? DEFAULTS.autoBackupDir,
     autoBackupKeep: record.autoBackupKeep ?? DEFAULTS.autoBackupKeep,
+    searchInApp: record.searchInApp ?? DEFAULTS.searchInApp,
   };
 }
 

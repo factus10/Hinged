@@ -568,6 +568,42 @@ tr.selected .status-chip {
   white-space: nowrap;
   vertical-align: middle;
 }
+
+/* Editable cell — looks identical to plain text by default; double-click to
+   reveal an input. A subtle hover hint helps people discover the gesture. */
+.editable-cell {
+  display: inline-block;
+  cursor: text;
+  padding: 0 2px;
+  margin: 0 -2px;
+  border-radius: 2px;
+}
+.stamp-table tr:hover .editable-cell {
+  background: rgba(45, 111, 211, 0.06);
+}
+.editable-cell-empty {
+  color: var(--fg-subtle);
+  opacity: 0.5;
+}
+.editable-cell-input {
+  font: inherit;
+  font-size: inherit;
+  /* Force the standard fg/bg pair so the input stays readable when its
+     parent <tr> is selected (which inverts the row to white-on-blue). */
+  color: var(--fg);
+  width: 100%;
+  min-width: 60px;
+  padding: 1px 4px;
+  margin: -2px -4px;
+  border: 1px solid var(--accent);
+  border-radius: 3px;
+  background: var(--bg);
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(45, 111, 211, 0.2);
+}
+.catalog-prefix {
+  color: var(--fg-subtle);
+}
 .qty-cell-inner {
   display: inline-flex;
   gap: 0.3rem;
@@ -656,6 +692,22 @@ tr.selected .status-chip {
 /* Two-part title: catalog number + denomination, separated by an em-dash.
    Catalog # stays at full size; denomination shrinks slightly and truncates
    with an ellipsis if the panel is narrow. */
+.detail-title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-width: 0;
+}
+.detail-title-row .detail-title {
+  flex: 1 1 auto;
+}
+.detail-search-btn {
+  flex: 0 0 auto;
+  font-size: 11px;
+  padding: 4px 10px;
+  white-space: nowrap;
+}
+
 .detail-title {
   display: flex;
   align-items: baseline;

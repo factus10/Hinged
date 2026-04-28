@@ -137,6 +137,21 @@ export function SettingsDialog({ open, onClose }: Props) {
         />
       </Field>
 
+      <Field
+        label="Google Search"
+        hint="Where the 🔍 Search Google button on a stamp opens the search results."
+      >
+        <Select
+          value={settings.searchInApp === 'false' ? 'external' : 'inApp'}
+          onChange={(e) =>
+            set({ searchInApp: e.target.value === 'external' ? 'false' : 'true' })
+          }
+        >
+          <option value="inApp">Open in Hinged (in-app window)</option>
+          <option value="external">Open in default browser</option>
+        </Select>
+      </Field>
+
       <div className="settings-section-header" style={{ marginTop: '0.75rem' }}>
         Auto-backup on launch
       </div>

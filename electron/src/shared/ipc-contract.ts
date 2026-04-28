@@ -73,6 +73,9 @@ export const IpcChannels = {
   // App info (used by the About dialog)
   appGetInfo: 'app:getInfo',
 
+  // In-app Google search window
+  searchOpen: 'search:open',
+
   // Diagnostics
   diagDbPath: 'diag:dbPath',
 } as const;

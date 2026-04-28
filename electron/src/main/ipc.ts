@@ -79,6 +79,7 @@ import {
   type WantListOptions,
 } from './want-list.js';
 import { runCsvImport } from './menu.js';
+import { openSearchWindow } from './search-window.js';
 import {
   applyTemplate,
   parseTemplateJson,
@@ -490,6 +491,15 @@ export function registerIpcHandlers(): void {
       return result;
     },
   );
+
+  // ----- In-app search window -----
+  ipcMain.handle(IpcChannels.searchOpen, (_e, url: string) => {
+    if (typeof url !== 'string' || !/^https?:\/\//i.test(url)) {
+      return { ok: false, error: 'invalid url' };
+    }
+    openSearchWindow(url);
+    return { ok: true };
+  });
 
   // ----- App info (About dialog) -----
   ipcMain.handle(IpcChannels.appGetInfo, () => ({

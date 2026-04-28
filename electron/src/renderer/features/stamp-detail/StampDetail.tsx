@@ -215,6 +215,35 @@ export function StampDetail() {
   // Context headers
   const album = albums.find((a) => a.id === stamp.albumId);
   const collection = album ? collections.find((c) => c.id === album.collectionId) : null;
+  const country = countries.find(
+    (c) => c.id === (collection?.countryId ?? stamp.countryId ?? -1),
+  );
+
+  // Build a Google query from whatever metadata we have. Catalog # is
+  // quoted to bias the search toward exact matches; everything else is
+  // bare so Google can do its normal ranking.
+  const searchGoogle = () => {
+    const parts: string[] = [];
+    if (country?.name) parts.push(country.name);
+    if (stamp.catalogNumber) {
+      const sys = collection?.catalogSystemRaw ?? 'scott';
+      const prefix = country?.catalogPrefixes?.[sys] ?? '';
+      parts.push(`"${prefix ? `${prefix} ` : ''}${stamp.catalogNumber}"`);
+    }
+    if (stamp.denomination) parts.push(stamp.denomination);
+    if (stamp.yearStart != null) parts.push(String(stamp.yearStart));
+    parts.push('stamp');
+    const q = parts.filter(Boolean).join(' ');
+    const url = `https://www.google.com/search?q=${encodeURIComponent(q)}`;
+    if (settings?.searchInApp === 'false') {
+      // window.open is intercepted by setWindowOpenHandler in main and
+      // routed through shell.openExternal, so this opens in the user's
+      // default browser rather than a new Electron window.
+      window.open(url, '_blank', 'noopener,noreferrer');
+    } else {
+      void window.hinged.search.open(url);
+    }
+  };
 
   return (
     <section className="stamp-detail">
@@ -228,12 +257,22 @@ export function StampDetail() {
             </span>
           )}
         </div>
-        <h2 className="detail-title" title={[stamp.catalogNumber, stamp.denomination].filter(Boolean).join(' — ') || '(untitled stamp)'}>
-          <span className="detail-title-cat">{stamp.catalogNumber || '(untitled stamp)'}</span>
-          {stamp.denomination && (
-            <span className="detail-title-denom">{stamp.denomination}</span>
-          )}
-        </h2>
+        <div className="detail-title-row">
+          <h2 className="detail-title" title={[stamp.catalogNumber, stamp.denomination].filter(Boolean).join(' — ') || '(untitled stamp)'}>
+            <span className="detail-title-cat">{stamp.catalogNumber || '(untitled stamp)'}</span>
+            {stamp.denomination && (
+              <span className="detail-title-denom">{stamp.denomination}</span>
+            )}
+          </h2>
+          <button
+            type="button"
+            className="btn btn-default detail-search-btn"
+            onClick={searchGoogle}
+            title="Search Google for this stamp — opens in your default browser"
+          >
+            <span aria-hidden>🔍</span> Search Google
+          </button>
+        </div>
       </div>
 
       <div className="detail-image">

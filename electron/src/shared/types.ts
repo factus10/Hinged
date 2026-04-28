@@ -195,6 +195,10 @@ export interface AppSettings {
   currencySymbol: string;
   autoBackupDir: string; // empty string = disabled
   autoBackupKeep: string; // stored as string in key/value store; parsed as int
+  /** Stored as 'true' / 'false'. When 'true', Search Google opens an in-app
+   *  window; when 'false', it routes through shell.openExternal to the OS
+   *  default browser. */
+  searchInApp: string;
 }
 
 export interface CustomCatalog {
