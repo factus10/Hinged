@@ -71,7 +71,8 @@ describe('backup', () => {
 
     // Deterministic emission: pretty-printed with sorted keys
     expect(json.startsWith('{')).toBe(true);
-    expect(json).toContain('"version": 1');
+    // v2 introduced multi-image; bump if BACKUP_VERSION moves again.
+    expect(json).toContain('"version": 2');
 
     // Re-parse is lossless
     const parsed = parseBackupJson(json);
