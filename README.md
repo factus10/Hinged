@@ -48,6 +48,16 @@ Either:
   Additions, Trading Stock, Trash.
 - **Bulk editing** — multi-select with ⌘/Ctrl+click, ⇧+click, and ⌘A.
   Right-click for status / condition / move-to-album / delete in one step.
+- **Inline cell editing** — double-click a Catalog #, Year, Denomination,
+  or Color cell in the stamp list to edit it in place. Return commits,
+  Esc cancels.
+- **Resizable / hideable columns** — drag column edges to resize, double-
+  click to reset, "Columns ▾" toolbar dropdown to hide ones you don't
+  use. Layout is remembered next time you launch.
+- **In-app Google search** — a Search Google button on every stamp
+  builds a contextual query (country, catalog #, denomination, year)
+  and opens the results in a sandboxed in-app browser window so you
+  don't leave Hinged. Settings toggle for default-browser instead.
 - **Quick add** — type a catalog number, year, denomination, hit Enter.
   Stamps fly into your album as fast as you can type.
 - **Keyboard navigation** — arrow keys move through the stamp list, Enter
