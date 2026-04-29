@@ -415,13 +415,79 @@ const TOPICS: Topic[] = [
           <li><strong>Series</strong> — the issuing series this stamp belongs to (e.g. Famous Americans, Prexies). See the <em>Series</em> topic.</li>
           <li><strong>Notes</strong> — anything else.</li>
           <li><strong>Cert Number / Issuer / Cert Date</strong> — for stamps with expert certificates. Hidden behind a small toggle since most stamps don&apos;t have them.</li>
-          <li><strong>Image</strong> — drag a photo onto the box, or click to pick one.</li>
+          <li><strong>Images</strong> — see the <em>Images and the gallery</em> topic for the multi-image gallery.</li>
         </ul>
 
         <Tip>
           You don&apos;t have to fill in every field. Many stamps don&apos;t
           have a meaningful watermark or perforation, and that&apos;s fine —
           leave them blank.
+        </Tip>
+      </>
+    ),
+  },
+
+  // ---------- Images and the gallery ----------
+  {
+    id: 'images',
+    title: 'Images and the gallery',
+    body: (
+      <>
+        <p>
+          Each stamp can have any number of images. The first image is the
+          <strong> primary</strong> — it&apos;s the one that shows in the
+          stamp list, in printed want lists, and in any export. Additional
+          images sit in a thumbnail strip beneath the primary; they&apos;re
+          useful for fronts and backs, certs, plate detail, or comparing
+          shades of the same issue.
+        </p>
+
+        <h4>Adding an image</h4>
+        <ul>
+          <li>Drag a photo from your desktop or Finder/Explorer onto the gallery area.</li>
+          <li>Click the <strong>+</strong> tile in the thumbnail strip and pick a file.</li>
+          <li>For a brand-new stamp with no images yet, the gallery shows a drop area with a <em>Choose File…</em> button.</li>
+        </ul>
+
+        <h4>Captions</h4>
+        <p>
+          Type a short label under the primary image — e.g.
+          <em> front</em>, <em>back</em>, <em>cert</em>, <em>plate detail</em>.
+          Captions show in the lightbox and as tooltips on thumbnails. They&apos;re
+          optional; leave them blank if you don&apos;t need them.
+        </p>
+
+        <h4>Reordering and choosing the primary</h4>
+        <p>
+          The first image in the strip is always the primary. To make a
+          different image the primary, <strong>drag</strong> it onto the
+          large primary slot at the top — the two trade places. You can also
+          drag thumbnails among themselves to set any order you like.
+        </p>
+
+        <h4>Replacing or removing</h4>
+        <ul>
+          <li><strong>Replace</strong> below the primary swaps the primary file (the old file is deleted from the Images folder for you).</li>
+          <li><strong>Remove</strong> below the primary deletes it; the next thumbnail in the strip becomes the new primary automatically.</li>
+          <li>Hover any thumbnail and click the small <strong>×</strong> to delete that one.</li>
+        </ul>
+
+        <h4>The lightbox</h4>
+        <p>
+          Click any image — primary or thumbnail — to open the lightbox: a
+          full-resolution overlay. With multiple images, use the side
+          buttons or the <kbd>←</kbd> / <kbd>→</kbd> arrow keys to step
+          through the gallery without closing. <kbd>Esc</kbd> or click
+          outside to close.
+        </p>
+
+        <Tip>
+          For valuable stamps, a back-of-stamp image is useful — gum
+          condition, hinge marks, repairs, and pencil marks all live there.
+          Add a back image, caption it &quot;back&quot;, and you have a
+          compact provenance record. Cert images are great too: scan or
+          photograph the certificate and add it as a third image with the
+          caption &quot;cert&quot;.
         </Tip>
       </>
     ),
@@ -1268,7 +1334,7 @@ const TOPICS: Topic[] = [
         <ul>
           <li><code>hinged.db</code> — the database. This is your collection.</li>
           <li><code>hinged.db-wal</code>, <code>hinged.db-shm</code> — temporary helper files. SQLite manages them; you can ignore them.</li>
-          <li><code>Images/</code> — one image file per stamp that has one. Filenames are random unique IDs.</li>
+          <li><code>Images/</code> — one file per gallery image. Each stamp can have many images now (front, back, cert, etc.); the file names are random unique IDs and the database keeps track of which files belong to which stamp and in what order.</li>
         </ul>
 
         <h4>Copying or moving your collection</h4>

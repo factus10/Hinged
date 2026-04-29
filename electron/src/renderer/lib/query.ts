@@ -20,4 +20,5 @@ export const qk = {
   customCatalogs: ['customCatalogs'] as const,
   series: ['series'] as const,
   seriesWithCounts: ['series', 'withCounts'] as const,
+  stampImages: (stampId: number) => ['stampImages', stampId] as const,
 };

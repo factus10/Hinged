@@ -19,7 +19,7 @@ import {
   gumConditions,
 } from '@shared/display';
 import type { Stamp, StampPatchPayload } from '@shared/types';
-import { StampImage } from './StampImage';
+import { StampImageGallery } from './StampImageGallery';
 
 // Autosave: each field commits via onBlur for text/number, onChange for selects.
 // Draft state stays in sync with the selected stamp while typing.
@@ -276,10 +276,7 @@ export function StampDetail() {
       </div>
 
       <div className="detail-image">
-        <StampImage
-          filename={stamp.imageFilename}
-          onChange={(filename) => commit({ imageFilename: filename })}
-        />
+        <StampImageGallery stampId={stamp.id} />
       </div>
 
       <form

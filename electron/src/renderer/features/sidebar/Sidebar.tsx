@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import {
   useAlbums,
   useCollections,
@@ -48,6 +48,39 @@ export function Sidebar() {
   const deleteCollection = useDeleteCollection();
   const deleteAlbum = useDeleteAlbum();
   const dialogs = useDialogs();
+
+  // Auto-select on launch.
+  //
+  // The selection store is persisted across launches, but two cases still
+  // leave us with a useless / confusing initial state:
+  //   1. Genuine first launch — selection is the default {type:'none'},
+  //      so we show "All Stamps" with +Stamp disabled.
+  //   2. The persisted selection points to a collection or album that
+  //      was deleted in another session.
+  // In both cases, drop the user onto the first album of the first
+  // collection so +Stamp is enabled and they can start working.
+  useEffect(() => {
+    if (collections.length === 0) return; // nothing to pick yet
+    const firstCollection = collections[0]!;
+    const firstAlbum = albums.find((a) => a.collectionId === firstCollection.id) ?? null;
+
+    let needsRepick = false;
+    if (selection.type === 'none') {
+      needsRepick = true;
+    } else if (selection.type === 'collection') {
+      needsRepick = !collections.some((c) => c.id === selection.id);
+    } else if (selection.type === 'album') {
+      needsRepick = !albums.some((a) => a.id === selection.id);
+    }
+    if (!needsRepick) return;
+
+    if (firstAlbum) setSelection({ type: 'album', id: firstAlbum.id });
+    else setSelection({ type: 'collection', id: firstCollection.id });
+    // We deliberately depend only on the data lists; selection changes
+    // come from this effect itself or from the user, neither of which
+    // should retrigger the auto-select.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [collections, albums]);
 
   const albumsByCollection = useMemo(() => {
     const m = new Map<number, Album[]>();

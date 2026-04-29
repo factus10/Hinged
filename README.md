@@ -58,7 +58,9 @@ Either:
 - **Auto-backup on launch** — point Hinged at a folder and it writes a
   timestamped backup every time you start the app, keeping the most
   recent N.
-- **Image attachments** — drag and drop or pick an image for each stamp.
+- **Multi-image gallery** — every stamp can have any number of images
+  (front, back, cert, plate detail, etc.) with optional captions, drag-
+  to-reorder, and a keyboard-navigable lightbox.
 - **Gap analysis** — pick a country and year range, see your completion
   percentage and the catalog-number gaps in your collection.
 - **Smart CSV import** — column-mapping wizard accepts any CSV layout,

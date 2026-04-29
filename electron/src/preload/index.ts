@@ -21,6 +21,7 @@ import type {
   SeriesPatchPayload,
   SeriesWithCount,
   Stamp,
+  StampImage,
   StampPatchPayload,
   TemplatePreview,
 } from '@shared/types.js';
@@ -98,6 +99,22 @@ const api = {
       ipcRenderer.invoke(IpcChannels.imagesDataUrl, filename),
     delete: (filename: string): Promise<boolean> =>
       ipcRenderer.invoke(IpcChannels.imagesDelete, filename),
+  },
+  stampImages: {
+    list: (stampId: number): Promise<StampImage[]> =>
+      ipcRenderer.invoke(IpcChannels.stampImagesList, stampId),
+    add: (stampId: number, filename: string, caption: string | null = null): Promise<StampImage> =>
+      ipcRenderer.invoke(IpcChannels.stampImagesAdd, { stampId, filename, caption }),
+    delete: (imageId: number): Promise<true> =>
+      ipcRenderer.invoke(IpcChannels.stampImagesDelete, imageId),
+    reorder: (stampId: number, imageIds: number[]): Promise<true> =>
+      ipcRenderer.invoke(IpcChannels.stampImagesReorder, { stampId, imageIds }),
+    setPrimary: (imageId: number): Promise<true> =>
+      ipcRenderer.invoke(IpcChannels.stampImagesSetPrimary, imageId),
+    setCaption: (imageId: number, caption: string | null): Promise<true> =>
+      ipcRenderer.invoke(IpcChannels.stampImagesSetCaption, { imageId, caption }),
+    replace: (imageId: number, filename: string): Promise<true> =>
+      ipcRenderer.invoke(IpcChannels.stampImagesReplace, { imageId, filename }),
   },
   settings: {
     get: (): Promise<AppSettings> => ipcRenderer.invoke(IpcChannels.settingsGet),

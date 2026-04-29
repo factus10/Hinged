@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
 
 export type SmartCollectionKind =
   | 'allOwned'
@@ -28,36 +29,57 @@ interface SelectionState {
   clearStampSelection: () => void;
 }
 
-export const useSelection = create<SelectionState>((set) => ({
-  selection: { type: 'none' },
-  selectedStampIds: new Set<number>(),
-  focusedStampId: null,
+// We persist *only* the sidebar selection (sidebar position) — not the
+// stamp multi-selection or the focused stamp ID, which should always
+// reset to a clean slate when the app launches. partialize controls
+// what's actually written to localStorage.
+export const useSelection = create<SelectionState>()(
+  persist(
+    (set) => ({
+      selection: { type: 'none' },
+      selectedStampIds: new Set<number>(),
+      focusedStampId: null,
 
-  setSelection: (s) =>
-    set({ selection: s, selectedStampIds: new Set<number>(), focusedStampId: null }),
+      setSelection: (s) =>
+        set({ selection: s, selectedStampIds: new Set<number>(), focusedStampId: null }),
 
-  setSingleStamp: (id) =>
-    set({
-      selectedStampIds: id == null ? new Set<number>() : new Set<number>([id]),
-      focusedStampId: id,
+      setSingleStamp: (id) =>
+        set({
+          selectedStampIds: id == null ? new Set<number>() : new Set<number>([id]),
+          focusedStampId: id,
+        }),
+
+      toggleStamp: (id) =>
+        set((state) => {
+          const next = new Set(state.selectedStampIds);
+          let focused: number | null;
+          if (next.has(id)) {
+            next.delete(id);
+            focused =
+              state.focusedStampId === id
+                ? next.size > 0
+                  ? [...next][next.size - 1]!
+                  : null
+                : state.focusedStampId;
+          } else {
+            next.add(id);
+            focused = id;
+          }
+          return { selectedStampIds: next, focusedStampId: focused };
+        }),
+
+      setSelectedStamps: (ids, focused) =>
+        set({ selectedStampIds: new Set(ids), focusedStampId: focused }),
+
+      clearStampSelection: () =>
+        set({ selectedStampIds: new Set<number>(), focusedStampId: null }),
     }),
-
-  toggleStamp: (id) =>
-    set((state) => {
-      const next = new Set(state.selectedStampIds);
-      let focused: number | null;
-      if (next.has(id)) {
-        next.delete(id);
-        focused = state.focusedStampId === id ? (next.size > 0 ? [...next][next.size - 1]! : null) : state.focusedStampId;
-      } else {
-        next.add(id);
-        focused = id;
-      }
-      return { selectedStampIds: next, focusedStampId: focused };
-    }),
-
-  setSelectedStamps: (ids, focused) =>
-    set({ selectedStampIds: new Set(ids), focusedStampId: focused }),
-
-  clearStampSelection: () => set({ selectedStampIds: new Set<number>(), focusedStampId: null }),
-}));
+    {
+      name: 'hinged.sidebar-selection.v1',
+      storage: createJSONStorage(() => localStorage),
+      // Only the sidebar selection survives a relaunch. Stamp multi-
+      // selection + focused stamp are deliberately ephemeral.
+      partialize: (state) => ({ selection: state.selection }),
+    },
+  ),
+);

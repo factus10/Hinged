@@ -38,6 +38,10 @@ import { insertAlbum, listAlbums } from './db/repositories/albums.js';
 import { insertStamp, listStamps, deleteAllStamps } from './db/repositories/stamps.js';
 import { insertSeries, listSeries } from './db/repositories/series.js';
 import {
+  addImage as addStampImageRow,
+  listForStamps as listStampImagesForStamps,
+} from './db/repositories/stamp-images.js';
+import {
   detectExtension,
   generateFilename,
   loadImageBuffer,
@@ -54,6 +58,9 @@ export function createBackup(db: DB): HingedBackup {
   const albums = listAlbums(db);
   const stamps = listStamps(db);
   const series = listSeries(db);
+  // Pull every gallery image in one query so we can attach images
+  // arrays without N+1 round-trips.
+  const galleries = listStampImagesForStamps(db, stamps.map((s) => s.id));
 
   // Stable backup-scoped IDs (the Swift exporter mints fresh UUIDs too).
   const countryBackupId = new Map<number, string>();
@@ -116,6 +123,20 @@ export function createBackup(db: DB): HingedBackup {
     const albumId = albumBackupId.get(s.albumId);
     if (!albumId) continue;
 
+    // Embed every image in the gallery as base64. The legacy imageData
+    // field still gets the primary image for v1-only readers.
+    const gallery = galleries.get(s.id) ?? [];
+    const images = gallery
+      .map((img) => {
+        const buf = loadImageBuffer(img.filename);
+        if (!buf) return null;
+        return {
+          base64: buf.toString('base64'),
+          caption: img.caption,
+          sortOrder: img.sortOrder,
+        };
+      })
+      .filter((x): x is { base64: string; caption: string | null; sortOrder: number } => x !== null);
     let imageData: string | null = null;
     if (s.imageFilename) {
       const buf = loadImageBuffer(s.imageFilename);
@@ -140,6 +161,7 @@ export function createBackup(db: DB): HingedBackup {
       purchaseDate: s.purchaseDate,
       acquisitionSource: s.acquisitionSource,
       imageData,
+      images: images.length > 0 ? images : undefined,
       quantity: s.quantity,
       tradeable: s.tradeable,
       seriesId: s.seriesId != null ? (seriesBackupId.get(s.seriesId) ?? null) : null,
@@ -297,19 +319,41 @@ export function restoreBackup(db: DB, backup: HingedBackup, mode: ImportMode): I
         continue;
       }
 
-      let imageFilename: string | null = null;
-      if (bs.imageData) {
+      // We materialise the gallery on disk after the stamp row is
+      // inserted (so we have an id to attach images to). For v1
+      // backups, only `imageData` is populated; for v2 backups,
+      // `images` carries the full gallery and `imageData` (if also
+      // present) duplicates entry 0.
+      type Saved = { filename: string; caption: string | null; sortOrder: number };
+      const savedImages: Saved[] = [];
+      if (bs.images && bs.images.length > 0) {
+        for (const img of bs.images) {
+          try {
+            const buf = Buffer.from(img.base64, 'base64');
+            const name = generateFilename(detectExtension(buf));
+            saveImageBuffer(buf, name);
+            savedImages.push({
+              filename: name,
+              caption: img.caption ?? null,
+              sortOrder: img.sortOrder,
+            });
+          } catch {
+            // skip corrupt image; keep going
+          }
+        }
+        savedImages.sort((a, b) => a.sortOrder - b.sortOrder);
+      } else if (bs.imageData) {
         try {
           const buf = Buffer.from(bs.imageData, 'base64');
           const name = generateFilename(detectExtension(buf));
           saveImageBuffer(buf, name);
-          imageFilename = name;
+          savedImages.push({ filename: name, caption: null, sortOrder: 0 });
         } catch {
           // swallow corrupt image data, keep the stamp
         }
       }
 
-      insertStamp(tx, {
+      const inserted = insertStamp(tx, {
         albumId,
         countryId: bs.countryId ? (countryMap.get(bs.countryId) ?? null) : null,
         seriesId: bs.seriesId ? (seriesMap.get(bs.seriesId) ?? null) : null,
@@ -327,7 +371,10 @@ export function restoreBackup(db: DB, backup: HingedBackup, mode: ImportMode): I
         purchasePrice: bs.purchasePrice,
         purchaseDate: bs.purchaseDate ?? null,
         acquisitionSource: bs.acquisitionSource,
-        imageFilename,
+        // Primary image is the sort_order=0 row, which addStampImageRow
+        // will keep stamps.image_filename in sync with. Pass null here
+        // so the row starts blank and the gallery appends fill it in.
+        imageFilename: null,
         quantity: bs.quantity ?? 1,
         tradeable: bs.tradeable ?? false,
         certNumber: bs.certNumber ?? null,
@@ -336,6 +383,9 @@ export function restoreBackup(db: DB, backup: HingedBackup, mode: ImportMode): I
         createdAt: bs.createdAt,
         updatedAt: bs.updatedAt,
       });
+      for (const img of savedImages) {
+        addStampImageRow(tx, inserted.id, img.filename, img.caption);
+      }
       result.stampsImported += 1;
     }
 

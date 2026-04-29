@@ -345,3 +345,80 @@ export function useDeleteSeries() {
     },
   });
 }
+
+// ---------- Multi-image gallery ----------
+
+export function useStampImages(stampId: number | null) {
+  return useQuery({
+    queryKey: stampId == null ? ['stampImages', 'disabled'] : qk.stampImages(stampId),
+    queryFn: () =>
+      stampId == null ? Promise.resolve([]) : window.hinged.stampImages.list(stampId),
+    enabled: stampId != null,
+  });
+}
+
+/**
+ * Helper that invalidates both the gallery for a single stamp and the
+ * stamps list (because the primary image filename can change).
+ */
+function invalidateGallery(qc: ReturnType<typeof useQueryClient>, stampId: number): void {
+  void qc.invalidateQueries({ queryKey: qk.stampImages(stampId) });
+  void qc.invalidateQueries({ queryKey: qk.stamps });
+}
+
+export function useAddStampImage() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (args: { stampId: number; filename: string; caption?: string | null }) =>
+      window.hinged.stampImages.add(args.stampId, args.filename, args.caption ?? null),
+    onSuccess: (_data, args) => invalidateGallery(qc, args.stampId),
+  });
+}
+
+export function useDeleteStampImage() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (args: { imageId: number; stampId: number }) =>
+      window.hinged.stampImages.delete(args.imageId),
+    onSuccess: (_data, args) => invalidateGallery(qc, args.stampId),
+  });
+}
+
+export function useReorderStampImages() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (args: { stampId: number; imageIds: number[] }) =>
+      window.hinged.stampImages.reorder(args.stampId, args.imageIds),
+    onSuccess: (_data, args) => invalidateGallery(qc, args.stampId),
+  });
+}
+
+export function useSetPrimaryStampImage() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (args: { imageId: number; stampId: number }) =>
+      window.hinged.stampImages.setPrimary(args.imageId),
+    onSuccess: (_data, args) => invalidateGallery(qc, args.stampId),
+  });
+}
+
+export function useSetStampImageCaption() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (args: {
+      imageId: number;
+      stampId: number;
+      caption: string | null;
+    }) => window.hinged.stampImages.setCaption(args.imageId, args.caption),
+    onSuccess: (_data, args) => invalidateGallery(qc, args.stampId),
+  });
+}
+
+export function useReplaceStampImageFile() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (args: { imageId: number; stampId: number; filename: string }) =>
+      window.hinged.stampImages.replace(args.imageId, args.filename),
+    onSuccess: (_data, args) => invalidateGallery(qc, args.stampId),
+  });
+}

@@ -4,7 +4,10 @@
 
 import { z } from 'zod';
 
-export const BACKUP_VERSION = 1;
+// Bumped to 2 in v0.2.0 — adds a per-stamp `images` array (multi-image
+// gallery). v1 backups remain importable; the legacy `imageData` field
+// still parses and is treated as the single primary image.
+export const BACKUP_VERSION = 2;
 
 const countryBackupSchema = z.object({
   id: z.string(),
@@ -69,6 +72,19 @@ const stampBackupSchema = z
     purchaseDate: z.string().nullable().optional(),
     acquisitionSource: z.string(),
     imageData: z.string().nullable().optional(),
+    // v2: gallery of additional images. Each entry is base64-encoded
+    // raw bytes (no data: prefix), with an optional caption. The first
+    // entry corresponds to the primary image and the legacy
+    // imageData field — exporter writes both for back-compat.
+    images: z
+      .array(
+        z.object({
+          base64: z.string(),
+          caption: z.string().nullable().optional(),
+          sortOrder: z.number().int(),
+        }),
+      )
+      .optional(),
     quantity: z.number().int().optional(),
     tradeable: z.boolean().optional(),
     seriesId: z.string().nullable().optional(),

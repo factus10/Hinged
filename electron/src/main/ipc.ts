@@ -61,6 +61,15 @@ import {
   updateSeries,
 } from './db/repositories/series.js';
 import {
+  addImage as addStampImage,
+  deleteImage as deleteStampImage,
+  listForStamp as listStampImages,
+  replaceImageFile as replaceStampImageFile,
+  reorderImages as reorderStampImages,
+  setCaption as setStampImageCaption,
+  setPrimary as setStampImagePrimary,
+} from './db/repositories/stamp-images.js';
+import {
   deleteImage,
   detectExtension,
   generateFilename,
@@ -234,6 +243,45 @@ export function registerIpcHandlers(): void {
       return false;
     }
   });
+
+  // ----- Multi-image gallery -----
+  ipcMain.handle(IpcChannels.stampImagesList, (_e, stampId: number) =>
+    listStampImages(getDatabase(), stampId),
+  );
+  ipcMain.handle(
+    IpcChannels.stampImagesAdd,
+    (_e, args: { stampId: number; filename: string; caption: string | null }) =>
+      addStampImage(getDatabase(), args.stampId, args.filename, args.caption ?? null),
+  );
+  ipcMain.handle(IpcChannels.stampImagesDelete, (_e, imageId: number) => {
+    deleteStampImage(getDatabase(), imageId);
+    return true;
+  });
+  ipcMain.handle(
+    IpcChannels.stampImagesReorder,
+    (_e, args: { stampId: number; imageIds: number[] }) => {
+      reorderStampImages(getDatabase(), args.stampId, args.imageIds);
+      return true;
+    },
+  );
+  ipcMain.handle(IpcChannels.stampImagesSetPrimary, (_e, imageId: number) => {
+    setStampImagePrimary(getDatabase(), imageId);
+    return true;
+  });
+  ipcMain.handle(
+    IpcChannels.stampImagesSetCaption,
+    (_e, args: { imageId: number; caption: string | null }) => {
+      setStampImageCaption(getDatabase(), args.imageId, args.caption);
+      return true;
+    },
+  );
+  ipcMain.handle(
+    IpcChannels.stampImagesReplace,
+    (_e, args: { imageId: number; filename: string }) => {
+      replaceStampImageFile(getDatabase(), args.imageId, args.filename);
+      return true;
+    },
+  );
 
   // ----- Settings -----
   ipcMain.handle(IpcChannels.settingsGet, () => getAllSettings(getDatabase()));

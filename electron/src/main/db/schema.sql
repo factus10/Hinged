@@ -102,3 +102,23 @@ CREATE TABLE IF NOT EXISTS settings (
   key   TEXT PRIMARY KEY,
   value TEXT NOT NULL
 );
+
+-- Multiple images per stamp. The legacy stamps.image_filename column
+-- stays in place as the "primary" image (the one shown in lists and
+-- exports without joining); additional images live here and are kept
+-- in display order via sort_order.
+--
+-- The first row (sort_order = 0) for any stamp mirrors
+-- stamps.image_filename. The repository keeps these in sync — when a
+-- user reorders / deletes / adds, both the stamp_images table and
+-- stamps.image_filename are updated together so reads from either side
+-- agree.
+CREATE TABLE IF NOT EXISTS stamp_images (
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  stamp_id   INTEGER NOT NULL REFERENCES stamps(id) ON DELETE CASCADE,
+  filename   TEXT NOT NULL,
+  caption    TEXT,
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS stamp_images_stamp_id ON stamp_images(stamp_id, sort_order);

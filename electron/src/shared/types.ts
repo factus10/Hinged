@@ -185,6 +185,17 @@ export interface StampPatchPayload {
   certDate?: string | null;
 }
 
+// ---------- Stamp images (multi-image gallery) ----------
+
+export interface StampImage {
+  id: number;
+  stampId: number;
+  filename: string;
+  caption: string | null;
+  sortOrder: number;
+  createdAt: string;
+}
+
 // ---------- Settings & custom catalogs ----------
 
 export interface AppSettings {

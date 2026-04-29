@@ -76,6 +76,22 @@ function runMigrations(db: DB): void {
   ensureColumn(db, 'stamps', 'cert_number', 'TEXT');
   ensureColumn(db, 'stamps', 'cert_issuer', 'TEXT');
   ensureColumn(db, 'stamps', 'cert_date', 'TEXT');
+
+  // Backfill stamp_images for any stamp that has stamps.image_filename
+  // set but no row in stamp_images. We do this on every launch and
+  // gate per-stamp via NOT EXISTS so it's safe to repeat: stamps that
+  // were created via the old single-image flow (or that picked up an
+  // image while the new schema wasn't loaded) get their primary row
+  // backfilled, and stamps that already have gallery data are
+  // untouched.
+  db.prepare(
+    `INSERT INTO stamp_images (stamp_id, filename, caption, sort_order, created_at)
+     SELECT s.id, s.image_filename, NULL, 0, ?
+     FROM stamps s
+     WHERE s.image_filename IS NOT NULL
+       AND s.image_filename <> ''
+       AND NOT EXISTS (SELECT 1 FROM stamp_images si WHERE si.stamp_id = s.id)`,
+  ).run(new Date().toISOString().replace(/\.\d{3}Z$/, 'Z'));
 }
 
 function ensureColumn(db: DB, table: string, column: string, type: string): void {

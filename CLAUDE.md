@@ -119,8 +119,9 @@ User data lives in Electron's `userData` path:
 | Windows | `%APPDATA%\Hinged\` |
 | Linux  | `~/.config/Hinged/` |
 
-Inside: `hinged.db` (SQLite WAL mode) and `Images/` (one file per stamp,
-UUID-named).
+Inside: `hinged.db` (SQLite WAL mode) and `Images/` (one file per
+gallery image, UUID-named — a stamp can own many of these via the
+`stamp_images` table).
 
 **Important**: dev (`npm run dev`) uses a *lowercase* `hinged/` userData
 folder because the package.json `name` is lowercase, while packaged
@@ -183,12 +184,23 @@ npm run dist:linux  # build .AppImage + .deb
 
 ## Backup file format
 
-`.hinged` files are JSON, version 1, structurally identical to the
-original Swift app's format (sorted keys, ISO-8601 dates without
-fractional seconds, base64-embedded image data). The Zod schema in
-[shared/backup-schema.ts](electron/src/shared/backup-schema.ts) is
-the source of truth and accepts the legacy `yearOfIssue` field from
-older Swift backups.
+`.hinged` files are JSON. The Zod schema in
+[shared/backup-schema.ts](electron/src/shared/backup-schema.ts) is the
+source of truth.
+
+- **Version 1** — original format, also written by the legacy Swift
+  app. Single image per stamp via the `imageData` field (base64).
+  Accepts the legacy `yearOfIssue` field from pre-year-range Swift
+  backups (mapped to `yearStart`).
+- **Version 2** (current export format, since v0.2.0) — adds a
+  per-stamp `images: Array<{ base64, caption?, sortOrder }>` for the
+  multi-image gallery. The exporter still writes the old `imageData`
+  field so v1-only readers see the primary image. The importer accepts
+  both shapes; if `images` is present it wins, otherwise `imageData`
+  is treated as a single sort_order=0 entry.
+
+When changing the format, bump `BACKUP_VERSION` and keep the importer
+backward-compatible with all earlier versions.
 
 ## Testing notes
 

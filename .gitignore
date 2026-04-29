@@ -11,5 +11,8 @@
 # Claude Code local settings
 .claude/
 
+# CodeGraph index — local-only, large, not source
+.codegraph/
+
 # Local data scratch (catalog imports, working files, anything personal)
 data/

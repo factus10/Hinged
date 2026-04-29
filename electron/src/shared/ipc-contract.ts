@@ -36,6 +36,15 @@ export const IpcChannels = {
   imagesDataUrl: 'images:dataUrl',
   imagesDelete: 'images:delete',
 
+  // Multi-image gallery (per stamp)
+  stampImagesList: 'stampImages:list',
+  stampImagesAdd: 'stampImages:add',
+  stampImagesDelete: 'stampImages:delete',
+  stampImagesReorder: 'stampImages:reorder',
+  stampImagesSetPrimary: 'stampImages:setPrimary',
+  stampImagesSetCaption: 'stampImages:setCaption',
+  stampImagesReplace: 'stampImages:replace',
+
   // Settings / custom catalogs
   settingsGet: 'settings:get',
   settingsSet: 'settings:set',
